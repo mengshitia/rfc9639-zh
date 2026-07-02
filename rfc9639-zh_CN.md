@@ -1,9 +1,14 @@
-Internet Engineering Task Force (IETF)                  M.Q.C. van Beurden
+Internet Engineering Task Force (IETF) | M.Q.C. van Beurden
+
 Request for Comments: [9639](https://www.rfc-editor.org/rfc/rfc9639)
-Cagegory: Standards Track                               A. Weaver
+
+Cagegory: Standards Track | A. Weaver
+
 Published: December 2024
+
 ISSN: 2070-1721
 
+---
 
 # Free Lossless Audio Codec (FLAC)
 
