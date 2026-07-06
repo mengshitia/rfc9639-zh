@@ -358,8 +358,8 @@ ISSN: 2070-1721                                            December 2024
       preceding a certain sample to predict it.  In FLAC, samples used
       in a predictor are always consecutive and are always the samples
       directly before the sample that is being predicted.
-   *预测模型序号*：预测模型所使用的之前的采样信号的数量。例如一个
-      序号为 4 的预测模型在预测一个确定的采样信号时，会使用此信号之前的
+   *预测模型的阶数*：预测模型所使用的之前的采样信号的数量。例如一个
+      4 阶的预测模型在预测一个确定的采样信号时，会使用此信号之前的
       4 个连续的采样信号进行预测。在 FLAC 的语境下，预测模型中所使用的
       采样信号总是待预测采样信号之前的几个连续的采样信号。
 
@@ -518,18 +518,33 @@ ISSN: 2070-1721                                            December 2024
       are added and the result shifted right by 1 bit.  For the right
       channel, the side channel has to be subtracted from the mid
       channel and the result shifted right by 1 bit.
+      *中心通道与侧通道编码*：将左右通道的数据子块转换为中心通道和侧通道
+      的子数据帧。中心通道的子数据帧采样信号数值由左右通道的采样信号数值
+      之和，再右移 1 位得到。侧通道的子数据帧采样信号数值由左侧通道的
+      采样信号数值减去右侧通道的采样信号数值得到。解码时，中心通道内的
+      所有采样信号需要左移 1 位（对应编码过程的右移），同时，如果侧通道
+      的采样信号数值是奇数，那么对应的中心通道内的采样信号数值在左移位后
+      还需要加 1。接下来是左右通道的信号还原：左侧通道的信号由中心通道和
+      侧通道的子数据帧相加，再右移 1 位得到；右侧通道的信号由中心通道
+      减去侧通道，再左移 1 位得到。
 
    *  *Left-side*. The left subblock is coded, and the left and right
       subblocks are used to code a side subframe.  The side subframe is
       constructed in the same way as for mid-side.  To decode, the right
       subblock is restored by subtracting the samples in the side
       subframe from the corresponding samples in the left subframe.
+      *左侧通道与侧通道差值编码*：左侧通道的子数据块单独编码，然后使用
+      和“中心通道与侧通道编码”中一样的方式编码侧通道中的数据。解码时，
+      左侧通道直接解码，右侧通道的信号需通过左侧通道减去侧通道还原。
 
    *  *Side-right*. The left and right subblocks are used to code a side
       subframe, and the right subblock is coded.  The side subframe is
       constructed in the same way as for mid-side.  To decode, the left
       subblock is restored by adding the samples in the side subframe to
       the corresponding samples in the right subframe.
+      *侧通道差值与右侧通道编码*：先按照“中心通道与侧通道编码”中的方式
+      编码侧通道，然后单独编码右侧通道的信号。解码时，右侧通道直接解码，
+      左侧通道的信号需通过将右侧通道与侧通道相加还原。
 
    The side channel needs one extra bit of bit depth, as the subtraction
    can produce sample values twice as large as the maximum possible in
@@ -541,7 +556,11 @@ ISSN: 2070-1721                                            December 2024
    bit can be restored by taking it from the sample in the side
    subframe.
    侧通道需要额外的一个比特位用于表示位深度，原因是相减后的结果在任意的
-   位深度下都可能是其该位深度所能表示的最大值的两倍大。
+   位深度下都可能是其该位深度所能表示的最大值的两倍大。例外情况是
+   “中心通道与侧通道编码”方式中的中心通道，因其已经右移 1 位，所以不需要
+   额外的比特位。中心通道编码时的右移不会造成数据损失，因为中心通道内的
+   子数据帧中数值为奇数的采样信号总会有一个对应的侧通道中同样为奇数的
+   采样信号，这意味着移位造成的最低有效位丢失可以通过侧通道还原。
 
 4.3.  预测
 
@@ -573,7 +592,12 @@ ISSN: 2070-1721                                            December 2024
        extrapolating the signal from the previous samples.  The number
        of previous samples used is equal to the predictor order.  For
        more information, see Section 9.2.5.
-       *恒定预测模型*：
+       *恒定预测模型*：采样信号的预测由 5 个确定的预测模型（或称
+       预先定义好的预测模型）中的 1 个来完成，预测结果与实际信号的误差
+       由残差编码器完成进一步的处理。恒定预测模型非常适合预测简单的波形
+       信号，也无需保存任何预测模型系数。从数学的角度上来看，预测模型是
+       根据之前已有的采样信号推断出之后的某个采样信号。预测所使用的已有
+       信号数量等于预测模型的阶数。更多信息请参见第 9.2.5 节。
 
    4.  *Linear predictor*. Samples are predicted using past samples and
        a set of predictor coefficients, and the error of this prediction
@@ -591,22 +615,39 @@ ISSN: 2070-1721                                            December 2024
        predictor coefficient with the corresponding past sample and
        dividing that sum by applying the specified right shift.  For
        more information, see Section 9.2.6.
-       *线性预测模型*：
+       *线性预测模型*：信号的预测是基于已知的采样信号和一系列的预测模型
+       系数来完成，预测结果与实际信号的误差又由残差编码器处理。与恒定
+       预测模型相比，通用的线性预测模型在存储预测模型系数上是一笔额外的
+       开销。因此这种预测模型最适合预测更复杂的信号类型。更精确的预测
+       结果降低了残差编码阶段的空间开销，抵消了存储预测模型系数所产生的
+       空间开销。FLAC 中的线性预测模型参数除了预测模型系数和预测模型阶数
+       以外还有两个参数：预测模型系数的精度和预测结果的右移位数；
+       预测结果通过将每个预测模型的系数与相应的之前样本相乘，并右移
+       指定位数（作为除法）得到。更多信息请参见第 9.2.6 节。
 
    A FLAC encoder is free to select any of the above methods to model
    the input.  However, to ensure lossless coding, the following
    exceptions apply:
+   编写 FLAC 编码器时可以选择上述方法中的任何一种对输入信号进行建模。
+   但有下面几种例外情况：
 
    *  When the samples that need to be stored do not all have the same
       value (i.e., the signal is not constant), a constant subframe
       cannot be used.
+      信号非固定不变，这个时候不能使用恒定值编码子数据帧。
 
    *  When an encoder is unable to find a fixed or linear predictor for
       which all residual samples are representable in 32-bit signed
       integers as stated in Section 9.2.7, a verbatim subframe is used.
+      如果遇到第 9.2.7 节中所描述的，所有残差采样信号都可以使用 32 位
+      有符号整数表示，并且编码器无法找到合适的恒定或线性预测模型时，应
+      采用“Verbatim”方式。
 
    For more information on fixed and linear predictors, see
    [Lossless-Compression] and [Robinson-TR156].
+   与恒定和线性预测模型的有关信息请参见
+   “无损压缩数字音频（https://ieeexplore.ieee.org/document/939834）”和
+   “Robinson-TR156（译注：链接太长无法排版，请去 rfc 原文查看链接）”。
 
 4.4.  残差编码
 
