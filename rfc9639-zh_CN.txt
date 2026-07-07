@@ -23,12 +23,12 @@ ISSN: 2070-1721                                            December 2024
    FLAC has been implemented independently for many different platforms,
    and both encoding and decoding can be implemented without needing
    floating-point arithmetic.
-   本文定义了 FLAC 格式及其流式子集。FLAC 的设计目的是减少存储数字音频
-   信号所需要的计算机存储空间。这个过程是无损的，即不会造成数据丢失。
-   因其开放的规范和开源的参考实现，FLAC 被认为是自由的。相比其他的无损
-   音频编码格式，FLAC 格式的编码复杂度较低，因此只需要少量计算资源
-   即可完成编码和解码。现已有针对不同平台、独立实现的 FLAC 解码工具，
-   并且，编码和解码的过程中不需要使用浮点数运算。
+   本文定义了 FLAC 格式及其“streamable”子集。FLAC 的设计目的是减少
+   存储数字音频信号所需要的计算机存储空间。这个过程是无损的，即不会造成
+   数据丢失。因其开放的规范和开源的参考实现，FLAC 被认为是自由的。
+   相比其他的无损音频编码格式，FLAC 格式的编码复杂度较低，因此只需要
+   少量计算资源即可完成编码和解码。现已有针对不同平台、独立实现的
+   FLAC 解码工具。编码和解码 FLAC 的过程中不需要使用浮点数运算。
 
 备忘录状态
 
@@ -83,7 +83,7 @@ ISSN: 2070-1721                                            December 2024
      4.4.  残差编码
    5.  格式原则
    6.  格式布局一览
-   7.  Streamable Subset
+   7.  Streamable 子集
    8.  File-Level Metadata
      8.1.  Metadata Block Header
      8.2.  Streaminfo
@@ -182,7 +182,7 @@ ISSN: 2070-1721                                            December 2024
    coding to and decoding from the FLAC format have been optimized for
    CD-audio, which is PCM audio with 2 channels, a sample rate of 44.1
    kHz, and a bit depth of 16 bits.
-   本文定义了 FLAC 格式及其流式子集。FLAC 文件及其流式格式可编码
+   本文定义了 FLAC 格式及其 streamable 子集。FLAC 文件或流可编码
    脉冲编码调制音频（PCM），这种音频编码包含 1 到 8 个通道，采样率范围为
    1 到 1048575 赫兹，位深度范围为 4 到 32 位。大多数编码和解码 FLAC 的
    工具都针对数字音频光盘进行了优化，即通常是包含 2 个通道、采样率为
@@ -221,7 +221,7 @@ ISSN: 2070-1721                                            December 2024
    "OPTIONAL" in this document are to be interpreted as described in
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
-   本文中出现的关键词：「必须」（MUST）、「不准」（MUST NOT）、
+   本文中出现的关键词：「必须」（MUST）、「不得」（MUST NOT）、
    「必要」（REQUIRED）、「允许」（SHALL）、「不允许」（SHALL NOT）、
    「应当」（SHOULD）、「不应当」（SHOULD NOT）、
    「建议」（RECOMMENDED）、「不建议」（NOT RECOMMENDED）、
@@ -701,7 +701,7 @@ ISSN: 2070-1721                                            December 2024
    新格式版本中「有可能」（MAY）会使用这些预留空间，这么做不会影响
    以旧版本编码的文件和流。旧版本的解码器在读取到采取了其无法识别的
    编码数据时，「可以」（MAY）终止解码。除了保留字段之外，FLAC 格式还
-   规定了特定位置中禁止使用的字段，意味着这些字段「不准」（MUST NOT）
+   规定了特定位置中禁止使用的字段，意味着这些字段「不得」（MUST NOT）
    出现在任何比特流中。下面的表格中列出了这些被禁止使用的字段。
 
          +=========================================+=============+
@@ -874,9 +874,9 @@ ISSN: 2070-1721                                            December 2024
    压缩率，为了让帧头尽可能地小，FLAC 中为数据帧属性中最常用的部分值
    提供了查询表。对于不在此表格中的属性，解码器将直接从帧头的末尾或
    数据流元数据块中读取该属性值（例如采样率）。需要注意的是，如果数据帧
-   头部引用了数据流元数据块，那么这个文件不能转换为数据流形式，详情请
-   参见第 7 节。而采用了查询表的文件是可以转换为数据流形式的，并且数据帧
-   的头部对于绝大多数常见音频格式而言足够小。
+   头部引用了数据流元数据块，那么这个文件就不是“streamable”的，详情请
+   参见第 7 节。而采用了查询表的文件是“streamable”的，并且数据帧的头部
+   对于绝大多数常见音频格式而言足够小。
 
    Individual subframes (one for each channel) are coded separately
    within a frame and appear serially in the stream.  In other words,
@@ -892,7 +892,7 @@ ISSN: 2070-1721                                            December 2024
    子数据帧有自己的帧头，其规定了子数据帧的属性，例如预测模型与其阶数、
    残差编码的参数等。其后是对应通道的编码后的音频数据。
 
-7.  Streamable Subset
+7.  Streamable 子集
 
    The FLAC format specifies a subset of itself as the FLAC streamable
    subset.  The purpose of this is to ensure that any streams encoded
@@ -903,37 +903,62 @@ ISSN: 2070-1721                                            December 2024
    parameters in such a way that decoder buffer sizes and other resource
    requirements can be easily determined.  The streamable subset makes
    the following limitations on what MAY be used in the stream:
+   FLAC 格式规定了一个自身的子集，即 FLAC streamable 子集。这项规定的
+   目的是确保任何按照此子集标准编码的流均为真正的“streamable”，即解码器
+   在此类流中即使无法进行定位也依然可以从流中的任意一部分开始解码。这样
+   还能限制编码器参数，便于确定解码器缓冲区大小以及其他资源开销，进而让
+   硬件上的解码器实现更实用。Streamable 子集对数据流中「可」（MAY）用的
+   属性作出了以下限制：
 
    *  The sample rate bits (see Section 9.1.2) in the frame header MUST
       be 0b0001-0b1110, i.e., the frame header MUST NOT refer to the
       streaminfo metadata block to describe the sample rate.
+      数据帧头部中用于表示采样率的二进制「必须」（MUST）是
+      0b0001-0b1110。帧头「不得」（MUST NOT）引用流信息元数据块的信息来
+      表示采样率。
 
    *  The bit depth bits (see Section 9.1.4) in the frame header MUST be
       0b001-0b111, i.e., the frame header MUST NOT refer to the
       streaminfo metadata block to describe the bit depth.
+      数据帧头部中的用于表示位深度的二进制「必须」（MUST）是
+      0b001-0b111。帧头「不得」（MUST NOT）引用流信息元数据块的信息来
+      表示位深度。
 
    *  The stream MUST NOT contain blocks with more than 16384
       interchannel samples, i.e., the maximum block size must not be
       larger than 16384.
+      数据流所包含的通道间采样信号「不得」（MUST NOT）超过 16384 个，即
+      数据块大小最大不能大于 16384。
 
    *  Audio with a sample rate less than or equal to 48000 Hz MUST NOT
       be contained in blocks with more than 4608 interchannel samples,
       i.e., the maximum block size used for this audio must not be
       larger than 4608.
+      拥有超过 4608 个通道间采样信号的数据块中「不得」（MUST NOT）出现
+      小于或等于 48000 Hz 采样率的音频数据。对于含有此类采样率的音频，
+      其数据块大小最大不能超过 4608。
 
    *  Linear prediction subframes (see Section 9.2.6) containing audio
       with a sample rate less than or equal to 48000 Hz MUST have a
       predictor order less than or equal to 12, i.e., the subframe type
       bits in the subframe header (see Section 9.2.1) MUST NOT be
       0b101100-0b111111.
+      包含采样率小于或等于 48000 Hz 的音频的，经线性预测并编码而成的
+      子数据帧的预测模型阶数「必须」（MUST）小于或等于 12，即子数据帧
+      头部中表示子数据帧类型的二进制（参见第 9.2.1 节）
+      「不得」（MUST NOT）是 0b101100-0b111111。
 
    *  The Rice partition order (see Section 9.2.7) MUST be less than or
       equal to 8.
+      Rice 分区的阶数（参见 9.2.7 节）「必须」（MUST）小于或等于 8。
 
    *  The channel ordering MUST be equal to one defined in
       Section 9.1.3, i.e., the FLAC file MUST NOT need a
       WAVEFORMATEXTENSIBLE_CHANNEL_MASK tag to describe the channel
       ordering.  See Section 8.6.2 for details.
+      表示通道数的二进制编码「必须」（MUST）是第 9.1.3 节中定义的值，即
+      FLAC 文件「不得」（MUST NOT）采用
+      WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签。详情请参见第 8.6.2 节。
 
 8.  File-Level Metadata
 
