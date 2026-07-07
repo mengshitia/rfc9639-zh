@@ -82,7 +82,7 @@ ISSN: 2070-1721                                            December 2024
      4.3.  预测
      4.4.  残差编码
    5.  格式原则
-   6.  Format Layout Overview
+   6.  格式布局一览
    7.  Streamable Subset
    8.  File-Level Metadata
      8.1.  Metadata Block Header
@@ -444,11 +444,11 @@ ISSN: 2070-1721                                            December 2024
        original signal.  FLAC uses Rice coding, a subset of Golomb
        coding, with either 4-bit or 5-bit parameters to code the
        residual signal.
-       *残差编码*（参见第 4.4 节）。由于预测的信号（又称误差或残差）与
-       实际信号有一定偏差，误差值将被无损地编码。如果预测模型非常有效，
-       那么残差信号所需要的采样分辨率会比原始信号更少。FLAC 使用
-       Rice 编码，这是 Golomb 编码的一个子集，通常使用 4 或 5 位长度的
-       参数去编码残差信号。
+       *残差编码*（参见第 4.4 节）。由于预测的信号不会与原始信号完全
+       一致，产生的偏差值会被无损地编码（此偏差值也被称为误差或残差）。
+       如果预测模型是有效的，那么残差信号所需要的采样分辨率会比原始信号
+       更少。FLAC 使用 Rice 编码对残差进行编码，这是 Golomb 编码的一个
+       子集，通常使用 4 或 5 位长度的参数去编码残差信号。
 
    In addition, FLAC specifies a metadata system (see Section 8) that
    allows arbitrary information about the stream to be included at the
@@ -804,15 +804,18 @@ ISSN: 2070-1721                                            December 2024
    *  One of the forbidden bit patterns described in Table 1 is used.
       使用了表格 1 中所列出的禁止使用的字段。
 
-6.  Format Layout Overview
+6.  格式布局一览
 
    A FLAC bitstream consists of the fLaC (i.e., 0x664C6143) marker at
    the beginning of the stream, followed by a mandatory metadata block
    (called the streaminfo metadata block), any number of other metadata
    blocks, and then the audio frames.
+   FLAC 比特流由头部的“fLaC（0x664C6143）”标记、一个必不可少的元数据块
+   （称之为数据流元数据块）、任意数量的其他元数据块以及音频数据帧组成。
 
    FLAC supports 127 kinds of metadata blocks; currently, 7 kinds are
    defined in Section 8.
+   FLAC 支持 127 种元数据块，第 8 节中定义了其中的 7 种。
 
    The audio data is composed of one or more audio frames.  Each frame
    consists of a frame header that contains a sync code, information
@@ -826,6 +829,18 @@ ISSN: 2070-1721                                            December 2024
    finished with a frame footer containing a checksum for the frame.
    Each subframe has its own header that specifies how the subframe is
    encoded.
+   音频数据由一个或多个音频数据帧组成。每个数据帧中的头部包含了一段
+   同步码、关于该数据帧的信息（例如数据块大小、采样率和通道数）和 8 位
+   长度的循环冗余校验码（CRC）。对于可变大小的数据块的流，数据帧头部中
+   还会存储数据帧中第一个采样信号的采样数量；对于固定大小的数据块的流，
+   数据帧头部存储的是数据帧数量（译注：第 4.1 节中有提到这个概念）；
+   这部分信息令采样信号的查找变得快速且精准。数据帧头部后面是编码后的
+   子数据帧，每个通道各有一份。每个子数据帧都含有相应的帧头，其规定了该
+   子数据帧是如何编码的。在子数据帧后面可能会填充 0 比特位以对齐字节边界
+   （不够一个字节就补满一个字节的长度），随后以一个包含了该帧校验码的
+   帧尾部结束。
+   （译注：最后才提到子数据帧含有各自的帧头，有点割裂，所以移动到
+   子数据帧的有关文本中去了。）
 
    In order to allow a decoder to start decoding at any place in the
    stream, each frame starts with a byte-aligned 15-bit sync code.
@@ -833,6 +848,10 @@ ISSN: 2070-1721                                            December 2024
    appear elsewhere in the frame, the decoder can check that it synced
    correctly by parsing the rest of the frame header and validating the
    frame header CRC.
+   每个数据帧都以一个已对齐字节大小的 15 位同步码作为开头，这么做能让
+   解码器在 FLAC 流的任意位置开始解码。然而，由于无法保证这段同步码不会
+   出现在数据帧的其他位置中，解码器可以通过解析数据帧头部的剩余部分并
+   验证头部 CRC 是否正确来确定其是否已经正确同步。
 
    Furthermore, to allow a decoder to start decoding at any place in the
    stream even without having received a streaminfo metadata block, each
@@ -849,6 +868,15 @@ ISSN: 2070-1721                                            December 2024
    "streamable"; see Section 7 for details.  By using lookup tables, the
    file is streamable and the frame header size is small for the most
    common forms of audio data.
+   此外，为了让解码器在没有接收到任何数据流元数据块时依然能够进行解码，
+   每个数据帧的头部都包含了一些与本数据流相关的信息，如采样率、位深度或
+   采样分辨率、通道数量等信息。由于数据帧头部是一笔开销，会直接影响
+   压缩率，为了让帧头尽可能地小，FLAC 中为数据帧属性中最常用的部分值
+   提供了查询表。对于不在此表格中的属性，解码器将直接从帧头的末尾或
+   数据流元数据块中读取该属性值（例如采样率）。需要注意的是，如果数据帧
+   头部引用了数据流元数据块，那么这个文件不能转换为数据流形式，详情请
+   参见第 7 节。而采用了查询表的文件是可以转换为数据流形式的，并且数据帧
+   的头部对于绝大多数常见音频格式而言足够小。
 
    Individual subframes (one for each channel) are coded separately
    within a frame and appear serially in the stream.  In other words,
@@ -858,6 +886,11 @@ ISSN: 2070-1721                                            December 2024
    subframe, like prediction method and order, residual coding
    parameters, etc.  Each subframe header is followed by the encoded
    audio data for that channel.
+   单独的子数据帧（每个通道各有一个）是独立编码在一个数据帧里的，并且在
+   整个数据流中按顺序排列，换句话说，编码后的音频数据不存在通道交叉。
+   这样的方式通过更大的解码缓冲区大小以换取解码器较低的复杂度。每个
+   子数据帧有自己的帧头，其规定了子数据帧的属性，例如预测模型与其阶数、
+   残差编码的参数等。其后是对应通道的编码后的音频数据。
 
 7.  Streamable Subset
 
