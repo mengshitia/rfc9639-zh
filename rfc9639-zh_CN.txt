@@ -84,7 +84,7 @@ ISSN: 2070-1721                                            December 2024
    5.  格式原则
    6.  格式布局一览
    7.  Streamable 子集
-   8.  File-Level Metadata
+   8.  文件级元数据
      8.1.  Metadata Block Header
      8.2.  Streaminfo
      8.3.  Padding
@@ -182,7 +182,7 @@ ISSN: 2070-1721                                            December 2024
    coding to and decoding from the FLAC format have been optimized for
    CD-audio, which is PCM audio with 2 channels, a sample rate of 44.1
    kHz, and a bit depth of 16 bits.
-   本文定义了 FLAC 格式及其 streamable 子集。FLAC 文件或流可编码
+   本文定义了 FLAC 格式及其“streamable”子集。FLAC 文件或流可编码
    脉冲编码调制音频（PCM），这种音频编码包含 1 到 8 个通道，采样率范围为
    1 到 1048575 赫兹，位深度范围为 4 到 32 位。大多数编码和解码 FLAC 的
    工具都针对数字音频光盘进行了优化，即通常是包含 2 个通道、采样率为
@@ -960,14 +960,17 @@ ISSN: 2070-1721                                            December 2024
       FLAC 文件「不得」（MUST NOT）采用
       WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签。详情请参见第 8.6.2 节。
 
-8.  File-Level Metadata
+8.  文件级元数据
 
    At the start of a FLAC file or stream, following the fLaC ASCII file
    signature, one or more metadata blocks MUST be present before any
    audio frames appear.  The first metadata block MUST be a streaminfo
    metadata block.
+   FLAC 文件或流中，所有的元数据块「必须」（MUST）出现在在作为
+   文件类型签名的 ASCII 字符“fLaC”标识之后、在音频数据帧之前。而第一个
+   元数据块「必须」（MUST）是一个流信息元数据块。
 
-8.1.  Metadata Block Header
+8.1.  元数据块头部
 
    Each metadata block starts with a 4-byte header.  The first bit in
    this header flags whether a metadata block is the last one.  It is 0
@@ -978,38 +981,48 @@ ISSN: 2070-1721                                            December 2024
    The three bytes that follow code for the size of the metadata block
    in bytes, excluding the 4 header bytes, as an unsigned number coded
    big-endian.
+   每个元数据块均以一个 4 字节长度的头部开始。其中第一个比特位用于标记
+   此元数据块是否是最后一个块，0 表示还有后续元数据块，1 表示此块是最后
+   一个块；余下的 7 个比特位以 0 到 126 的无符号整数表示此元数据块的
+   类型，如下表所示；禁止使用 127（0b1111111）。余下的 3 个字节用于表示
+   除了头部这 4 个字节以外的元数据块的大小，单位是字节，数值的表示方式
+   是大端序的无符号整数。
 
     +=========+=======================================================+
-    | Value   | Metadata Block Type                                   |
+    | 值      | 元数据块类型                                          |
     +=========+=======================================================+
-    | 0       | Streaminfo                                            |
+    | 0       | 数据流信息                                            |
     +---------+-------------------------------------------------------+
     | 1       | Padding                                               |
     +---------+-------------------------------------------------------+
-    | 2       | Application                                           |
+    | 2       | 应用程序                                              |
     +---------+-------------------------------------------------------+
     | 3       | Seek table                                            |
     +---------+-------------------------------------------------------+
-    | 4       | Vorbis comment                                        |
+    | 4       | Vorbis 注释                                           |
     +---------+-------------------------------------------------------+
-    | 5       | Cuesheet                                              |
+    | 5       | Cue 表                                                |
     +---------+-------------------------------------------------------+
-    | 6       | Picture                                               |
+    | 6       | 图像                                                  |
     +---------+-------------------------------------------------------+
-    | 7 - 126 | Reserved                                              |
+    | 7 - 126 | 保留，暂不使用                                        |
     +---------+-------------------------------------------------------+
-    | 127     | Forbidden (to avoid confusion with a frame sync code) |
+    | 127     | 禁止使用（防止与帧同步码混淆）                        |
     +---------+-------------------------------------------------------+
 
-                                  Table 2
+                                  表格 2
 
-8.2.  Streaminfo
+8.2.  数据流信息
 
    The streaminfo metadata block has information about the whole stream,
    such as sample rate, number of channels, total number of samples,
    etc.  It MUST be present as the first metadata block in the stream.
    Other metadata blocks MAY follow.  There MUST be no more than one
    streaminfo metadata block per FLAC stream.
+   数据流信息元数据块含有关于该数据流的信息，例如采样率、通道数量、
+   采样信号的总数量等等。此元数据块「必须」（MUST）是数据流中的第一个
+   元数据块，其后「可以」（MAY）是其他的元数据块。每个 FLAC 流中
+   「必须」（MUST）有且仅有一个数据流信息元数据块。
 
    If the streaminfo metadata block contains incorrect or incomplete
    information, decoder behavior is left unspecified (i.e., it is up to
@@ -1021,51 +1034,57 @@ ISSN: 2070-1721                                            December 2024
    number of audio channels, number of bits per sample, and total number
    of samples) without doing further checks during decoding of audio
    frames could be vulnerable to buffer overflows.  See also Section 11.
+   假设解码器在解码数据流信息元数据块中包含的信息时发现信息有误或信息
+   不完整，应由解码器的具体实现决定如何进行后续处理；比如解码器
+   「可以」（MAY）终止解码。如果解码器读取并接受数据流信息元数据块中的
+   信息，但在后续解码过程中不检测这些信息的正确性（最重要的包括：
+   最大数据帧大小、最大数据块大小、音频通道数量、采样信号的位深度和
+   采样信号总数），会有缓冲区溢出的风险。另请参见第 11 节。
 
    The following table describes the streaminfo metadata block in order,
    excluding the metadata block header.
+   下表按组成顺序描述了数据流信息元数据块的组成结构，其中不包括元数据块
+   的头部部分。
 
        +========+=================================================+
-       | Data   | Description                                     |
+       | 数据   | 描述信息                                        |
        +========+=================================================+
-       | u(16)  | The minimum block size (in samples) used in the |
-       |        | stream, excluding the last block.               |
+       | u(16)  | 数据流中，除了最后一个数据块以外的数据块大小的  |
+       |        | 最小值，数值单位是采样信号数量。                |
        +--------+-------------------------------------------------+
-       | u(16)  | The maximum block size (in samples) used in the |
-       |        | stream.                                         |
+       | u(16)  | 数据流中，除了最后一个数据块以外的数据块大小的  |
+       |        | 最大值，数值单位是采样信号数量。                |
        +--------+-------------------------------------------------+
-       | u(24)  | The minimum frame size (in bytes) used in the   |
-       |        | stream.  A value of 0 signifies that the value  |
-       |        | is not known.                                   |
+       | u(24)  | 数据流中数据帧大小的最小值，数值单位是字节数；  |
+       |        | 其中 0 表示最小数据帧大小是未知。               |
        +--------+-------------------------------------------------+
-       | u(24)  | The maximum frame size (in bytes) used in the   |
-       |        | stream.  A value of 0 signifies that the value  |
-       |        | is not known.                                   |
+       | u(24)  | 数据流中数据帧大小的最大值，数值单位是字节数；  |
+       |        | 其中 0 表示最大数据帧大小是未知。               |
        +--------+-------------------------------------------------+
-       | u(20)  | Sample rate in Hz.                              |
+       | u(20)  | 采样率，单位是赫兹（Hz）。                      |
        +--------+-------------------------------------------------+
-       | u(3)   | (number of channels)-1.  FLAC supports from 1   |
-       |        | to 8 channels.                                  |
+       | u(3)   | 音频的通道数量减 1。                            |
+       |        | FLAC 支持 1 到 8 个通道的音频。                 |
        +--------+-------------------------------------------------+
-       | u(5)   | (bits per sample)-1.  FLAC supports from 4 to   |
-       |        | 32 bits per sample.                             |
+       | u(5)   | 采样信号的位深度减 1。                          |
+       |        | FLAC 支持 4 到 32 位的位深度。                  |
        +--------+-------------------------------------------------+
-       | u(36)  | Total number of interchannel samples in the     |
-       |        | stream.  A value of 0 here means the number of  |
-       |        | total samples is unknown.                       |
+       | u(36)  | 数据流中通道间采样信号的总数；其中 0 表示       |
+       |        | 采样信号的总数未知。                            |
        +--------+-------------------------------------------------+
-       | u(128) | MD5 checksum of the unencoded audio data.  This |
-       |        | allows the decoder to determine if an error     |
-       |        | exists in the audio data even when, despite the |
-       |        | error, the bitstream itself is valid.  A value  |
-       |        | of 0 signifies that the value is not known.     |
+       | u(128) | 未编码的音频数据的 MD5 校验和；其中 0 表示      |
+       |        | 校验和未知。该校验和为解码器提供了检测音频是否  |
+       |        | 存在数据损坏的方式，就算音频数据的比特流是      |
+       |        | “看似正常的”，也可以检测到其中的数据损坏。      |
        +--------+-------------------------------------------------+
 
-                                 Table 3
+                                 表格 3
 
    The minimum block size and the maximum block size MUST be in the
    16-65535 range.  The minimum block size MUST be equal to or less than
    the maximum block size.
+   数据块大小的最小值、最大值「必须」（MUST）在 16 到 65535 的范围内。
+   最小值必须小于或等于最大值。
 
    Any frame but the last one MUST have a block size equal to or greater
    than the minimum block size and MUST have a block size equal to or
@@ -1074,6 +1093,10 @@ ISSN: 2070-1721                                            December 2024
    to comply to the minimum block size because the block size of that
    frame must be able to accommodate the length of the audio data the
    stream contains.
+   除了最后一个数据帧以外的任何数据帧的数据块大小「必须」（MUST）大于或
+   等于数据块大小的最小值，也「必须」（MUST）小于或等于数据块大小的
+   最大值。最后一个数据帧的数据块大小「必须」（MUST）小于或等于数据块
+   大小的最大值，但无需考虑最小值，这是为了与音频数据流的长度相匹配。
 
    If the minimum block size is equal to the maximum block size, the
    file contains a fixed block size stream, as the minimum block size
@@ -1086,6 +1109,12 @@ ISSN: 2070-1721                                            December 2024
    receiving any input audio data and cannot know beforehand what block
    sizes it will use, only between what bounds the block sizes will be
    chosen.
+   如果数据块大小的最小值和最大值相等，则表明该文件或数据流的数据块大小
+   是固定不变的（排除最后一个数据块的大小）。注意如果数据流使用了可变的
+   数据块大小，实际数据块的最大值「可以」（MAY）小于数据流信息元数据块
+   中的最大值，最小值「可以」（MAY）大于数据流信息元数据块中的最小值；
+   这是因为编码器在接收到音频数据之前无法获得数据块的大小，而这些字段又
+   必须在此之前确定下来，因此只能选择规定中允许的最大和最小值。
 
    The sample rate MUST NOT be 0 when the FLAC file contains audio.  A
    sample rate of 0 MAY be used when non-audio is represented.  This is
@@ -1096,6 +1125,12 @@ ISSN: 2070-1721                                            December 2024
    in a Vorbis comment field (see Section 8.6) or an application
    metadata block (see Section 8.4).  This document does not define such
    metadata.
+   包含音频的 FLAC 文件的采样率「不得」（MUST NOT）为 0。若文件不表示
+   音频，采样率「可以」（MAY）为 0；有时候数据不按照时间轴编码，或者数据
+   的采样率信息位于 FLAC 在数据流信息元数据块中所能表示的范围之外，此时
+   0 采样率就是适用的。如果采样率为 0，建议在 Vorbis 注释字段中（参见
+   第 8.6 节）或在应用程序元数据块中（参见第 8.4 节）对此文件中所编码的
+   信息加以一定的描述。本文不会对这类元数据给出任何定义。
 
    The MD5 checksum is computed by applying the MD5 message-digest
    algorithm in [RFC1321].  The message to this algorithm consists of
@@ -1107,32 +1142,43 @@ ISSN: 2070-1721                                            December 2024
    samples must be byte-aligned.  If the bit depth is not a whole number
    of bytes, the value of each sample is sign-extended to the next whole
    number of bytes.
+   MD5 校验码由 RFC 1321 中的 MD5 消息摘要算法给出。此处使用的信息是：
+   所有通道的所有采样信号的交错，以小端序有符号整数表示。这里的交错是
+   基于每个采样信号进行的，对于立体声音频文件而言，首先是第一个声道的
+   第一个采样信号，然后是第二个声道的第一个采样信号，依此类推。计算
+   校验和之前，所有采样信号必须以字节对齐。如果采样率不是一个字节的
+   整数倍，那么每个采样信号的比特位长度都要扩展到下一个字节的整数倍，
+   这种扩展是带符号的。
 
    In the case of a 2-channel stream with 6-bit samples, bits will be
    lined up as follows:
+   假设这是一个双通道 6 位位深度的数据流，数据的比特位会按照如下所示的
+   形式排列：
 
    SSAAAAAASSBBBBBBSSCCCCCC
    ^   ^   ^   ^   ^   ^
-   |   |   |   |   |  Bits of 2nd sample of 1st channel
-   |   |   |   |  Sign extension bits of 2nd sample of 2nd channel
-   |   |   |  Bits of 1st sample of 2nd channel
-   |   |  Sign extension bits of 1st sample of 2nd channel
-   |  Bits of 1st sample of 1st channel
-   Sign extension bits of 1st sample of 1st channel
+   |   |   |   |   |  第一个通道的第二个采样信号的实际比特位
+   |   |   |   |  第二个通道的第二个采样信号的带符号扩展的比特位
+   |   |   |  第二个通道的第一个采样信号的实际比特位
+   |   |  第二个通道的第一个采样信号的带符号扩展的比特位
+   |  第一个通道的第一个采样信号的实际比特位
+   第一个通道的第一个采样信号的带符号扩展的比特位
 
    In the case of a 1-channel stream with 12-bit samples, bits are lined
    up in little-endian byte order as follows:
+   假设这是一个单通道 12 位位深度的数据流，数据的比特位会按照如下所示的
+   小端序字节顺序排列：
 
    AAAAAAAASSSSAAAABBBBBBBBSSSSBBBB
       ^     ^   ^   ^       ^   ^
-      |     |   |   |       |  Most-significant 4 bits of 2nd sample
-      |     |   |   | Sign extension bits of 2nd sample
-      |     |   |  Least-significant 8 bits of 2nd sample
-      |     |  Most-significant 4 bits of 1st sample
-      |    Sign extension bits of 1st sample
-     Least-significant 8 bits of 1st sample
+      |     |   |   |       |  第二个采样信号中最高的 4 位比特位
+      |     |   |   | 第二个采样信号的带符号扩展的比特位
+      |     |   |  第二个采样信号中的最低 8 位比特位
+      |     |  第一个采样信号中最高的 4 位比特位
+      |    第一个采样信号的带符号扩展的比特位
+     第一个采样信号中最低的 8 位比特位
 
-8.3.  Padding
+8.3.  数据填充
 
    The padding metadata block allows for an arbitrary amount of padding.
    This block is useful when it is known that metadata will be edited
@@ -1142,16 +1188,21 @@ ISSN: 2070-1721                                            December 2024
    of having to insert it into the existing file (which would normally
    require rewriting the entire file).  There MAY be one or more padding
    metadata blocks per FLAC stream.
+   数据填充元数据块允许任意数量的填充。此数据块的作用是，让编码器提前
+   保留足够的空间以供编码完成后对元数据进行编辑；写入新的元数据时，这些
+   填充的比特位直接被覆盖，避免了调整元数据区域大小并重新写入文件的操作
+   （覆盖保留的填充位比重新写入文件快得多）。FLAC 数据流中
+   「可以」（MAY）出现多个数据填充元数据块。
 
       +======+======================================================+
-      | Data | Description                                          |
+      | 数据 | 描述信息                                             |
       +======+======================================================+
-      | u(n) | n "0" bits (n MUST be a multiple of 8, i.e., a whole |
-      |      | number of bytes, and MAY be zero). n is 8 times the  |
-      |      | size described in the metadata block header.         |
+      | u(n) | n 位“0”比特位，n「必须」（MUST）是 8 的整数倍，即    |
+      |      | 整数字节长度的比特位，也「可以」（MAY）是 0。n 是    |
+      |      | 元数据块头部中描述的大小的 8 倍大。                  |
       +------+------------------------------------------------------+
 
-                                  Table 4
+                                  表格 4
 
 8.4.  Application
 
