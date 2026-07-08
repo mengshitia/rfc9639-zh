@@ -993,11 +993,11 @@ ISSN: 2070-1721                                            December 2024
     +=========+=======================================================+
     | 0       | 数据流信息                                            |
     +---------+-------------------------------------------------------+
-    | 1       | Padding                                               |
+    | 1       | 数据填充                                              |
     +---------+-------------------------------------------------------+
     | 2       | 应用程序                                              |
     +---------+-------------------------------------------------------+
-    | 3       | Seek table                                            |
+    | 3       | 定位表                                                |
     +---------+-------------------------------------------------------+
     | 4       | Vorbis 注释                                           |
     +---------+-------------------------------------------------------+
@@ -1204,28 +1204,31 @@ ISSN: 2070-1721                                            December 2024
 
                                   表格 4
 
-8.4.  Application
+8.4.  应用程序
 
    The application metadata block is for use by third-party
    applications.  The only mandatory field is a 32-bit application
    identifier (application ID).  Application IDs are registered in the
    IANA "FLAC Application Metadata Block IDs" registry (see
    Section 12.2).
+   应用程序元数据块中的信息是供第三方应用程序使用的。唯一强制的字段是
+   一段 32 位长度的应用程序标识符。应用程序标识符注册于 IANA 的
+   “FLAC Application Metadata Block IDs” 注册表（参见第 12.2 节）。
 
        +=======+===================================================+
-       | Data  | Description                                       |
+       | 数据  | 描述信息                                          |
        +=======+===================================================+
-       | u(32) | Registered application ID.                        |
+       | u(32) | 注册过的应用程序标识符。                          |
        +-------+---------------------------------------------------+
-       | u(n)  | Application data (n MUST be a multiple of 8,      |
-       |       | i.e., a whole number of bytes). n is 8 times the  |
-       |       | size described in the metadata block header minus |
-       |       | the 32 bits already used for the application ID.  |
+       | u(n)  | 应用程序相关的数据，n「必须」（MUST）是 8 的      |
+       |       | 整数倍，即整数个字节长度。n 等于元数据块头部中    |
+       |       | 描述的长度减去已经用与表示应用程序标识符的 32 位  |
+       |       | 比特位的长度。                                    |
        +-------+---------------------------------------------------+
 
-                                  Table 5
+                                  表格 5
 
-8.5.  Seek Table
+8.5.  定位表
 
    The seek table metadata block can be used to store seek points.  It
    is possible to seek to any given sample in a FLAC stream without a
@@ -1234,6 +1237,11 @@ ISSN: 2070-1721                                            December 2024
    delay can be significantly reduced.  There MUST NOT be more than one
    seek table metadata block in a stream, but the table can have any
    number of seek points.
+   定位表元数据块用于存储定位点。尽管没有定位表也能在 FLAC 流中查找
+   任意给定的采样信号，但因为整个流中的比特率变化很大，查找特定采样信号
+   所需要的时间是无法预估的。而往流中添加定位点后，查找时间将会大幅度
+   缩短。每个流中的定位表数量「不得」（MUST NOT）大于 1，但定位表中可以
+   包含任意数量的定位点。
 
    Each seek point takes 18 bytes, so a seek table with 1% resolution
    within a stream adds less than 2 kilobytes of data.  The number of
@@ -1241,15 +1249,19 @@ ISSN: 2070-1721                                            December 2024
    header, i.e., equal to size / 18.  There is also a special
    "placeholder" seek point that will be ignored by decoders but can be
    used to reserve space for future seek point insertion.
+   每个定位点占据 18 个字节，因此流中的一个分辨率为 1% 的定位表只会多用
+   不到 2 kB 的数据大小。元数据块头部中已经隐含了定位点的数量，即头部中
+   给出的大小除以 18。定位表中有一种特殊的定位点，其作用是作为占位符，
+   为未来可能插入的新的定位点预留空间，解码器可直接忽略这类定位点。
 
                +=============+=============================+
-               | Data        | Description                 |
+               | 数据        | 描述信息                    |
                +=============+=============================+
-               | Seek points | Zero or more seek points as |
-               |             | defined in Section 8.5.1.   |
+               | 定位点数据  | 第 8.5.1 节中所定义的       |
+               |             | 0 个或多个定位点            |
                +-------------+-----------------------------+
 
-                                  Table 6
+                                  表格 6
 
    A seek table is generally not usable for seeking in a FLAC file
    embedded in a container (see Section 10), as such containers usually
@@ -1259,43 +1271,58 @@ ISSN: 2070-1721                                            December 2024
    the seek table in the container along with other metadata when muxing
    a FLAC file, so this stored seek table can be restored when demuxing
    the FLAC stream into a standalone FLAC file.
+   对于嵌入到容器中的 FLAC 文件（参见第 10 节），定位表通常无法使用，
+   因为容器常常交错编码 FLAC 文件数据与其他数据，而定位表中定位点的
+   偏移值是没有经过信号复用的 FLAC 流中的值。不过，依然可以将定位表与
+   其他元数据一起存储到容器中，在还原出原有的 FLAC 文件后，此定位表就
+   可以使用了。
 
-8.5.1.  Seek Point
+8.5.1.  定位点
 
    +=======+==========================================================+
-   | Data  | Description                                              |
+   | 数据  | 描述信息                                                 |
    +=======+==========================================================+
-   | u(64) | Sample number of the first sample in the target frame or |
-   |       | 0xFFFFFFFFFFFFFFFF for a placeholder point.              |
+   | u(64) | 目标数据帧中的第一个采样信号的编号；对于“占位符”类型的   |
+   |       | 定位点而言是“0xFFFFFFFFFFFFFFFF”。                       |
    +-------+----------------------------------------------------------+
-   | u(64) | Offset (in bytes) from the first byte of the first frame |
-   |       | header to the first byte of the target frame's header.   |
+   | u(64) | 第一个数据帧头部的第一个字节到目标数据帧头部的第一个字节 |
+   |       | 之间的距离（偏移值），以字节数为单位。                   |
    +-------+----------------------------------------------------------+
-   | u(16) | Number of samples in the target frame.                   |
+   | u(16) | 目标数据帧包含的采样信号的数量。                         |
    +-------+----------------------------------------------------------+
 
-                                 Table 7
+                                 表格 7
 
-   Notes:
+   备注：
 
    *  For placeholder points, the second and third field values are
       undefined.
+      对于“占位符”类型的定位点而言，第二和第三个字段的值是未定义的。
 
    *  Seek points within a table MUST be sorted in ascending order by
       sample number.
+      定位表中的定位点「必须」（MUST）按采样信号编号升序排列和存储。
 
    *  Seek points within a table MUST be unique by sample number, with
       the exception of placeholder points.
+      定位表中的除了“占位符”类型的定位点以外，其编号「必须」（MUST）
+      对应采样信号编号，即是唯一且不重复的。
 
    *  The previous two notes imply that there MAY be any number of
       placeholder points, but they MUST all occur at the end of the
       table.
+      前两项备注所隐含的规则是：定位表中「可以」（MAY）包含任意数量的
+      “占位符”类型的定位点，但这些定位点「必须」（MUST）位于定位表的
+      末尾。
 
    *  The sample offsets are those of an unmuxed FLAC stream.  The
       offsets MUST NOT be updated on muxing to reflect the new offsets
       of FLAC frames in a container.
+      用于定位的偏移值适用于未经过信号复用的 FLAC 流。在将 FLAC 嵌入到
+      容器中时，这些偏移值「不得」（MUST NOT）修改为表示已嵌入到
+      容器中，经过信号复用后的 FLAC 流中的采样信号偏移值。
 
-8.6.  Vorbis Comment
+8.6.  Vorbis 注释
 
    A Vorbis comment metadata block contains human-readable information
    coded in UTF-8.  The name "Vorbis comment" points to the fact that
@@ -1308,11 +1335,29 @@ ISSN: 2070-1721                                            December 2024
    users refer to these fields as "FLAC tags" or simply as "tags".  A
    FLAC file MUST NOT contain more than one Vorbis comment metadata
    block.
+   Vorbis 注释元数据块中包含了以人类自然语言书写并以 UTF-8 编码的信息。
+   “Vorbis 注释”这个名字表明实际上这些元数据与 Vorbis 编解码器所使用的
+   存储方式是一样的（参见 Vorbis 相关信息的外部链接：
+   “https://xiph.org/vorbis/doc/v-comment.html”）。Vorbis 注释元数据块
+   包含了“供应商”字符串和可选的一些字段（这些字段的名称与内容以
+   键值对的形式出现）。“供应商”字符串包含了生成此文件或数据流的
+   程序名称。其后的字段包含了与音频数据各方面相关的描述信息。许多用户
+   将这些字段称为“FLAC 标签”或简称为“标签”。每个 FLAC 文件中的
+   Vorbis 注释元数据块的数量「不得」（MUST NOT）大于 1。
 
    In a Vorbis comment metadata block, the metadata block header is
    directly followed by 4 bytes containing the length in bytes of the
    vendor string as an unsigned number coded little-endian.  The vendor
    string follows, is UTF-8 coded and is not terminated in any way.
+   每个 Vorbis 注释元数据块中的元数据块头部的后方是一段 4 字节长、
+   以小端序无符号整数形式表示、单位是字节数的，表示“供应商”字符串长度的
+   数据。这段数据之后就是以 UTF-8 编码的“供应商”字符串，注意字符串不会
+   以任何特定的字符作为结尾标志。
+   （译注：“is not terminated in any way” 这样的表述还是比较容易造成
+   困惑的；以我的个人经验来理解，C 语言中 '\0' 被当作字符串结尾标识符；
+   这里的意思是没有哪个特定的字符被当作这些字符串的结尾标识符，各个字段
+   首尾相连，唯一能用于区分不同字段的只有长度信息；下一段中也有这样的
+   表述，在译文中就不再重复这一点了。）
 
    Following the vendor string are 4 bytes containing the number of
    fields that are in the Vorbis comment block, stored as an unsigned
@@ -1322,6 +1367,11 @@ ISSN: 2070-1721                                            December 2024
    as a 4-byte unsigned number coded little-endian.  The field itself
    follows it.  Like the vendor string, the field is UTF-8 coded and not
    terminated in any way.
+   在“供应商”字符串后面，是一段 4 字节长、以小端序无符号整数形式表示，
+   表示 Vorbis 注释信息块中字段数量的数据。如果该数据表示的数值非 0，
+   其后方将是字段信息，每个字段的长度均以 4 字节长的小端序无符号整数形式
+   表示。长度信息后面是字段存储的信息，与“供应商”字符串一样采用 UTF-8
+   进行编码。
 
    Each field consists of a field name and field contents, separated by
    an = character.  The field name MUST only consist of UTF-8 code
@@ -1331,6 +1381,13 @@ ISSN: 2070-1721                                            December 2024
    names MUST be case insensitive, so U+0041 through 0+005A (A-Z) MUST
    be considered equivalent to U+0061 through U+007A (a-z).  The field
    contents can contain any UTF-8 character.
+   每个字段由一个字段名称和字段内容组成，名称和内容之间以“=”符号相隔。
+   字段名称「必须」（MUST）只由从 U+0020 到 U+007E 的 UTF-8 编码组成，
+   其中表示“=”符号的 U+003D 不可以出现；换句话说，字段名称中可以出现除了
+   “=”符号以外的任何可打印的 ASCII 字符。读取字段名称时「必须」（MUST）
+   采用大小写不相关的处理方式，即 U+0041 到 0+005A（A-Z）的字符与
+   U+0061 到 U+007A（a-z）的字符在处理时「必须」是等价的。而字段内容中
+   可以包含任意的 UTF-8 字符。
 
    Note that the Vorbis comment as used in Vorbis allows for 2^64 bytes
    of data whereas the FLAC metadata block is limited to 2^24 bytes.
@@ -1339,8 +1396,14 @@ ISSN: 2070-1721                                            December 2024
    restrictive.  Also, note that the 32-bit field lengths are coded
    little-endian as opposed to the usual big-endian coding of fixed-
    length integers in the rest of the FLAC format.
+   需要注意的是，Vorbis 中所使用的 Vorbis 注释的长度最大可达 2^64 字节，
+   但在 FLAC 元数据块中，Vorbis 注释的长度最大不能超过 2^24 字节。考虑到
+   Vorbis 注释的目的，即存储人类自然语言的相关文本信息，FLAC 元数据块的
+   大小限制应该不至于造成影响。此外还需要注意的是，表示字段长度的数值是
+   以 32 位小端序无符号整数编码的，这不同于 FLAC 格式中其他使用了大端序
+   编码的数值。
 
-8.6.1.  Standard Field Names
+8.6.1.  标准字段名称
 
    Only one standard field name is defined: the channel mask field (see
    Section 8.6.2).  No other field names are defined because the
@@ -1351,25 +1414,39 @@ ISSN: 2070-1721                                            December 2024
    or a collection of music works.  Even when describing a single work
    of music, different conventions exist depending on the kind of music:
    orchestral music differs from music by solo artists or bands.
+   此处只有定义了一个标准的字段名称：通道掩码（参见第 8.6.2 节）。不定义
+   其他字段名称的原因是任何实际使用的字段都与其内容紧密相关；例如，用于
+   描述包含单一音乐作品的字段名称不适用于广播集、录音集或音乐集；就算
+   只用于描述单一音乐作品，不同类型的音乐有着不同的标签惯例：交响乐作品
+   和单一艺术家或乐队的作品是不同的。
 
    Despite the fact that no field names are formally defined, there is a
    general trend among devices and software capable of FLAC playback
    that are meant to play music.  Most of those recognize at least the
    following field names:
+   虽然没有任何正式定义的字段名称，但在支持 FLAC 的设备和软件中存在一种
+   趋势，那就是播放音乐。下面列出的字段至少是受大多数设备和软件支持的：
 
    Title:  Name of the current work.
+   Title：此音乐作品的名称（或称为标题）。
 
    Artist:  Name of the artist generally responsible for the current
       work.  For orchestral works, this is usually the composer;
       otherwise, it is often the performer.
+   Artist：与此音乐作品最相关的艺术家的名字。交响乐作品中一般是编曲者，
+      其他情况下一般是演奏者。
 
    Album:  Name of the collection the current work belongs to.
+   Album：此作品所属的作品集的名称。
 
    For a more comprehensive list of possible field names suited for
    describing a single work of music in various genres, the list of tags
    used in the MusicBrainz project is suggested; see [MusicBrainz].
+   更完整的字段名称列表请参见 MusicBrainz 项目中的标签列表，这些标签
+   适用于描述各种风格流派的单一音乐作品。参见
+   ”https://picard-docs.musicbrainz.org/en/variables/variables.html“。
 
-8.6.2.  Channel Mask
+8.6.2.  通道掩码
 
    Besides fields containing information about the work itself, one
    field is defined for technical reasons:
@@ -1379,6 +1456,11 @@ ISSN: 2070-1721                                            December 2024
    two channels is interpreted to contain a left and right channel, but
    with this field, it is possible to describe different channel
    contents.
+   除了用于描述与作品本身相关信息的字段以外，还有一个出于技术原因定义的
+   字段：WAVEFORMATEXTENSIBLE_CHANNEL_MASK。这个字段用于提示解码器，此
+   文件中的通道信息与第 9.1.3 节中所定义的默认的通道信息不同。例如，默认
+   情况下，FLAC 音频文件包含的两个通道通常会被处理为左右声道，但如果
+   使用了这个字段，就可以将这两个通道处理为其他的通道组合。
 
    The channel mask consists of flag bits indicating which channels are
    present.  The flags only signal which channels are present, not in
@@ -1389,74 +1471,103 @@ ISSN: 2070-1721                                            December 2024
    the WAVEFORMATEXTENSIBLE_CHANNEL_MASK is not streamable (see
    Section 7), as the field is not found in each frame header.  The mask
    bits can be found in the following table.
+   通道掩码本质是标识符，不同的标识符表示不同的通道类型。但标识符只用于
+   表示通道类型，其出现顺序不一定代表实际的通道编码顺序。因此，假设某个
+   文件编码时的通道顺序与通道掩码出现的顺序不同，则需要对通道掩码进行
+   排序。通道掩码是一个以 0x 开始的十六进制数，参见下方的示例。
+   需要注意的是，使用了 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 定义通道和顺序
+   的流不是“steamable”的（参见第 7 节）。通道掩码的比特位位置位于下表：
+   （译注：原表格中表示位置的数字从 0 开始表示第一位，翻译时改为
+   从 1 开始表示第一位。通道类型其实也是扬声器位置，但不同的场景下的翻译
+   不同，此外 DTS、SSDT、Dolby 对各个扬声器位置的名称也有些不同，因此
+   这里的翻译名称仅供参考。）
 
                +============+=============================+
-               | Bit Number | Channel Description         |
+               | 位置       | 表示的通道类型              |
                +============+=============================+
-               | 0          | Front left                  |
+               | 1          | 左前方                      |
                +------------+-----------------------------+
-               | 1          | Front right                 |
+               | 2          | 右前方                      |
                +------------+-----------------------------+
-               | 2          | Front center                |
+               | 3          | 前方中间                    |
                +------------+-----------------------------+
-               | 3          | Low-frequency effects (LFE) |
+               | 4          | 低频音效（LFE）             |
                +------------+-----------------------------+
-               | 4          | Back left                   |
+               | 5          | 左后方                      |
                +------------+-----------------------------+
-               | 5          | Back right                  |
+               | 6          | 右后方                      |
                +------------+-----------------------------+
-               | 6          | Front left of center        |
+               | 7          | 中间的左前方                |
                +------------+-----------------------------+
-               | 7          | Front right of center       |
+               | 8          | 中间的右前方                |
                +------------+-----------------------------+
-               | 8          | Back center                 |
+               | 9          | 后方中间                    |
                +------------+-----------------------------+
-               | 9          | Side left                   |
+               | 10         | 左侧方                      |
                +------------+-----------------------------+
-               | 10         | Side right                  |
+               | 11         | 右侧方                      |
                +------------+-----------------------------+
-               | 11         | Top center                  |
+               | 12         | 中间高处                    |
                +------------+-----------------------------+
-               | 12         | Top front left              |
+               | 13         | 左前方高处                  |
                +------------+-----------------------------+
-               | 13         | Top front center            |
+               | 14         | 前方中间高处                |
                +------------+-----------------------------+
-               | 14         | Top front right             |
+               | 15         | 右前方高处                  |
                +------------+-----------------------------+
-               | 15         | Top rear left               |
+               | 16         | 左后方高处                  |
                +------------+-----------------------------+
-               | 16         | Top rear center             |
+               | 17         | 后方中间高处                |
                +------------+-----------------------------+
-               | 17         | Top rear right              |
+               | 18         | 右后方高处                  |
                +------------+-----------------------------+
 
-                                 Table 8
+                                 表格 8
 
    Following are three examples:
+   下面是 3 个示例：
 
    *  A file has a single channel -- an LFE channel.  The Vorbis comment
       field is WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x8.
+      单一低频音效（LFE）通道的文件，Vorbis 注释为：
+      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x8。
+      （译注：对应的二进制为：0b 1000。）
 
    *  A file has four channels -- front left, front right, top front
       left, and top front right.  The Vorbis comment field is
       WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x5003.
+      包含 4 个通道（左前方、右前方、左前方高处和右前方高处）的文件，
+      Vorbis 注释为：WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x5003。
+      （译注：对应的二进制为：0b 0101 0000 0000 0011。）
 
    *  An input has four channels -- back center, top front center, front
       center, and top rear center in that order.  These have to be
       reordered to front center, back center, top front center, and top
       rear center.  The Vorbis comment field added is
       WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x12104.
+      包含 4 个通道的输入信号，并将通道顺序重新排列为：前方中间、
+      后方中间、前方中间高处和后方中间高处；Vorbis 注释为：
+      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x12104。
+      （译注：对应的二进制为：0b 0001 0010 0001 0000 0100。）
 
    WAVEFORMATEXTENSIBLE_CHANNEL_MASK fields MAY be padded with zeros,
    for example, 0x0008 for a single LFE channel.  Parsing of
    WAVEFORMATEXTENSIBLE_CHANNEL_MASK fields MUST be case-insensitive for
    both the field name and the field contents.
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段「可以」（MAY）使用 0 进行
+   填充，因此 0x0008 与 0x8 是等价的，都表示单一低频音效（LFE）通道。
+   处理 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段时「必须」（MUST）对
+   字段名称和字段内容都采用大小写无关的处理方式。
 
    A WAVEFORMATEXTENSIBLE_CHANNEL_MASK field of 0x0 can be used to
    indicate that none of the audio channels of a file correlate with
    speaker positions.  This is the case when audio needs to be decoded
    into speaker positions (e.g., Ambisonics B-format audio) or when a
    multitrack recording is contained.
+   值为 0x0 的 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段可以用于表示文件中
+   没有任何一个音频通道与扬声器的位置相关。这种情况可能是需要将音频解码
+   并与扬声器位置进行对应的音频格式（例如 B 类 Ambisonics 音频）或是
+   包含多个音频轨道的文件。
 
    It is possible for a WAVEFORMATEXTENSIBLE_CHANNEL_MASK field to code
    for fewer channels than are present in the audio.  If that is the
@@ -1469,14 +1580,25 @@ ISSN: 2070-1721                                            December 2024
    WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3 would be set, indicating that
    the first two channels are front left and front right and other
    channels do not correlate with speaker positions directly.
+   用 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段编码比音频文件中实际更少的
+   通道数是可行的，这种情况下，回放应用程序「不应当」（SHOULD NOT）在
+   不了解余下的通道的作用时对这些通道进行解码；例如 Ambisonics UHJ 格式
+   是兼容立体声的：该格式的前两个通道可以作为立体声播放，但所有 4 个
+   通道一起解码才是环绕声。Vorbis 注释字段
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3 表示前两个通道分别是左前方和
+   右前方，而其余的通道不与扬声器位置直接相关。
 
    If audio channels not assigned to any speaker are contained and
    decoding to speaker positions is possible, it is recommended to
    provide metadata on how this decoding should take place in another
    Vorbis comment field or an application metadata block.  This document
    does not define such metadata.
+   如果音频通道没有被分配到任何扬声器位置，但是这些音频通道又能够被解码
+   并对应到已知的扬声器位置时，建议在另外的 Vorbis 注释字段中
+   或者应用程序元数据块中提供描述这些音频通道转换的方式的元数据。本文
+   对此类元数据不作定义。
 
-8.7.  Cuesheet
+8.7.  Cue 表
 
    A cuesheet metadata block can be used either to store the track and
    index point structure of a Compact Disc Digital Audio (CD-DA) along
@@ -1486,36 +1608,40 @@ ISSN: 2070-1721                                            December 2024
    is standardized as [IEC.60908.1999].  The description below is
    complete, and further reference to [IEC.60908.1999] is not needed to
    implement this metadata block.
+   Cue 表元数据块可用于将音频与其在数字音乐光盘上的分轨、目录结构等信息
+   一起存储，或是为 FLAC 文件提供存储文件中特定位置的一种机制。此
+   元数据块的部分内容直接来自于数字音乐光盘（CD-DA）规范文档（也被称为
+   “Red Book”），其标准化编号为：IEC.60908.1999。下方的表格包含了可用于
+   实现此元数据块所需的完整信息，没有必要去进一步参考 IEC.60908.1999。
 
    The structure of a cuesheet metadata block is enumerated in the
    following table.
+   下面的表格罗列了 Cue 表元数据块的结构。
 
    +============+======================================================+
-   | Data       | Description                                          |
+   | 数据       | 描述信息                                             |
    +============+======================================================+
-   | u(128*8)   | Media catalog number in ASCII                        |
-   |            | printable characters 0x20-0x7E.                      |
+   | u(128*8)   | 媒体目录编号，0x20 到 0x7E 的可打印的 ASCII 字符。   |
    +------------+------------------------------------------------------+
-   | u(64)      | Number of lead-in samples.                           |
+   | u(64)      | 起始采样信号的编号。                                 |
    +------------+------------------------------------------------------+
-   | u(1)       | 1 if the cuesheet corresponds to a                   |
-   |            | CD-DA; else 0.                                       |
+   | u(1)       | 1 表示数字音乐光盘，0 表示其他类型。                 |
    +------------+------------------------------------------------------+
-   | u(7+258*8) | Reserved.  All bits MUST be set to                   |
-   |            | zero.                                                |
+   | u(7+258*8) | 保留。所有比特位「必须」（MUST）为 0。               |
    +------------+------------------------------------------------------+
-   | u(8)       | Number of tracks in this cuesheet.                   |
+   | u(8)       | 音轨数量。                                           |
    +------------+------------------------------------------------------+
-   | Cuesheet   | A number of structures as specified                  |
-   | tracks     | in Section 8.7.1 equal to the number                 |
-   |            | of tracks specified previously.                      |
+   | Cue 表中的 | 与上一个字段的值相等。Cue 表中的音轨是描述音轨信息的 |
+   | 音轨数量   | 一种结构，参见第 8.7.1 节中的定义。                  |
    +------------+------------------------------------------------------+
 
-                                  Table 9
+                                  表格 9
 
    If the media catalog number is less than 128 bytes long, it is right-
    padded with 0x00 bytes.  For CD-DA, this is a 13-digit number
    followed by 115 0x00 bytes.
+   如果媒体目录编号长度小于 128 字节，需要在其右侧填充 0x00 字节。对于
+   数字音乐光盘而言是 13 位数字和 115 个 0x00 字节。
 
    The number of lead-in samples has meaning only for CD-DA cuesheets;
    for other uses, it should be 0.  For CD-DA, the lead-in is the TRACK
@@ -1530,6 +1656,17 @@ ISSN: 2070-1721                                            December 2024
    number of samples up to the first index point of the first track, not
    necessarily to INDEX 01 of the first track; even the first track MAY
    have INDEX 00 data.
+   只有数字音乐光盘中的 Cue 表中的起始采样信号编号才有实际意义，对于其他
+   类型，该值应当是 0。对于数字音乐光盘，起始位置是 TRACK 00 区域，
+   此区域存储了目录信息，更准确地说是此媒体文件中第一个采样信号到第一条
+   音轨中的第一个索引位置的第一个采样信号的距离。
+   根据 IEC.60908.1999 标准，起始采样「必须」（MUST）是无声的，
+   但光盘抓轨软件通常不会存储这个值；此外，这段无声音频的持续时间
+   「必须」（MUST）达到至少 2 秒，「可以」（MAY）更久。
+   出于这些原因，此持续时间的长度会被保存下来，这样就能够计算出
+   第一条音轨的绝对位置。注意这里存储的起始位置是从开头的采样信号一直到
+   第一条音轨的第一个索引位置的采样信号，就算第一条音轨「可能」（MAY）
+   有 INDEX 00，也没必要定位到 INDEX 01。
 
    The number of tracks MUST be at least 1, as a cuesheet block MUST
    have a lead-out track.  For CD-DA, this number MUST be no more than
@@ -1537,39 +1674,41 @@ ISSN: 2070-1721                                            December 2024
    is always the last track in the cuesheet.  For CD-DA, the lead-out
    track number MUST be 170 as specified by [IEC.60908.1999]; otherwise,
    it MUST be 255.
+   「必须」（MUST）有至少 1 条音轨，因为 Cue 表数据块「必须」（MUST）
+   包含一个结束音轨。对于数字音乐光盘而言，音轨数量「必须」（MUST）不能
+   超过 100（99 条普通音轨和 1 条结束音轨）。结束音轨是 Cue 表的最后一条
+   音轨，其编号按照 IEC.60908.1999 标准，在数字音乐光盘中
+   「必须」（MUST）是 170，在其他类型的媒体中「必须」（MUST）是 255。
 
-8.7.1.  Cuesheet Track
+8.7.1.  Cue 表中的音轨
 
    +=============+=====================================================+
-   | Data        | Description                                         |
+   | 数据        | 描述信息                                            |
    +=============+=====================================================+
-   | u(64)       | Track offset of the first index point in            |
-   |             | samples, relative to the beginning of the           |
-   |             | FLAC audio stream.                                  |
+   | u(64)       | 此音轨的第一个索引位置到相对于 FLAC 音频流起始位置  |
+   |             | 的偏移值，单位是采样数。                            |
    +-------------+-----------------------------------------------------+
-   | u(8)        | Track number.                                       |
+   | u(8)        | 音轨编号。                                          |
    +-------------+-----------------------------------------------------+
-   | u(12*8)     | Track ISRC.                                         |
+   | u(12*8)     | 音轨的国际标准音像制品编码（ISRC）。                |
    +-------------+-----------------------------------------------------+
-   | u(1)        | The track type: 0 for audio, 1 for non-audio.       |
-   |             | This corresponds to the CD-DA Q-channel             |
-   |             | control bit 3.                                      |
+   | u(1)        | 音轨类型：0 表示音频，1 表示非音频。                |
+   |             | 与 CD-DA Q-channel 控制位 3 相对应。                |
    +-------------+-----------------------------------------------------+
    | u(1)        | The pre-emphasis flag: 0 for no pre-emphasis,       |
    |             | 1 for pre-emphasis.  This corresponds to the        |
    |             | CD-DA Q-channel control bit 5.                      |
    +-------------+-----------------------------------------------------+
-   | u(6+13*8)   | Reserved.  All bits MUST be set to zero.            |
+   | u(6+13*8)   | 保留。所有比特位「必须」（MUST）是 0。              |
    +-------------+-----------------------------------------------------+
-   | u(8)        | The number of track index points.                   |
+   | u(8)        | 音轨中所有索引位置的数量。                          |
    +-------------+-----------------------------------------------------+
-   | Cuesheet    | For all tracks except the lead-out track, a         |
-   | track index | number of structures as specified in                |
-   | points      | Section 8.7.1.1 equal to the number of index        |
-   |             | points specified previously.                        |
+   | Cue 表中    | 除了结束音轨以外的其他音轨中的索引位置的数量，      |
+   | 音轨的索引  | 与上一个字段的值相等。Cue 表中音轨的索引位置的定义  |
+   | 的数量      | 位于第 8.7.1.1 节中。                               |
    +-------------+-----------------------------------------------------+
 
-                                  Table 10
+                                  表格 10
 
    Note that the track offset differs from the one in CD-DA, where the
    track's offset in the table of contents (TOC) is that of the track's
@@ -1617,7 +1756,7 @@ ISSN: 2070-1721                                            December 2024
    1, and subsequently, index point numbers MUST increase by 1.  Index
    point numbers MUST be unique within a track.
 
-8.8.  Picture
+8.8.  图像
 
    The picture metadata block contains image data of a picture in some
    way belonging to the audio contained in the FLAC file.  Its format is
@@ -1626,52 +1765,58 @@ ISSN: 2070-1721                                            December 2024
    ID3v2, the media type and description are prepended with a 4-byte
    length field instead of being 0x00 delimited strings.  A FLAC file
    MAY contain one or more picture metadata blocks.
+   图像元数据块包含了属于文件中的音频的图像数据。其格式由 ID3v2 规范中的
+   Attached Picture (APIC) 图像帧派生而来。然而与 ID3v2 中的 APIC 图像帧
+   不同的是，媒体类型和描述信息都是 4 字节长的字段，而不是 0x00 分隔的
+   字符串。每个 FLAC 文件中「可以」（MAY）包含多个图像元数据块。
 
    Note that while the length fields for media type, description, and
    picture data are 4 bytes in length and could code for a size up to 4
    GiB in theory, the total metadata block size cannot exceed what can
    be described by the metadata block header, i.e., 16 MiB.
+   注意，虽然媒体类型、描述和图像数据都是 4 字节长度，理论上是可以编码
+   4 GiB 大小的数据，然而元数据块的总大小不允许超过元数据块头部中所给的
+   最大值，即 16 MiB。
 
    Instead of picture data, the picture metadata block can also contain
    a URI as described in [RFC3986].
+   除了图像数据，图像元数据块也能包含 URI，参见 RFC 3986。
 
    The structure of a picture metadata block is enumerated in the
    following table.
+   下面的表格罗列了图像元数据块的结构。
 
    +========+==========================================================+
-   | Data   | Description                                              |
+   | 数据   | 描述信息                                                 |
    +========+==========================================================+
-   | u(32)  | The picture type according to Table 13.                  |
+   | u(32)  | 图像类型，参考表格 13。                                  |
    +--------+----------------------------------------------------------+
-   | u(32)  | The length of the media type string in bytes.            |
+   | u(32)  | 描述媒体类型的字符串的长度，单位是字节数。               |
    +--------+----------------------------------------------------------+
-   | u(n*8) | The media type string as specified by [RFC2046],         |
-   |        | or the text string --> to signify that the data          |
-   |        | part is a URI of the picture instead of the              |
-   |        | picture data itself.  This field must be in              |
-   |        | printable ASCII characters 0x20-0x7E.                    |
+   | u(n*8) | RFC 2046 中规定的描述媒体类型的字符串，或是表示图像数据  |
+   |        | 应通过一个 URI 获取的纯文本字符串。此字段的内容必须是    |
+   |        | 0x20 到 0x7E 的可打印的 ASCII 字符组成。                 |
    +--------+----------------------------------------------------------+
-   | u(32)  | The length of the description string in bytes.           |
+   | u(32)  | 关于图像的描述字符串的长度，单位是字节数。               |
    +--------+----------------------------------------------------------+
-   | u(n*8) | The description of the picture in UTF-8.                 |
+   | u(n*8) | UTF-8 编码的关于图像的描述字符串。                       |
    +--------+----------------------------------------------------------+
-   | u(32)  | The width of the picture in pixels.                      |
+   | u(32)  | 图像宽度，单位是像素。                                   |
    +--------+----------------------------------------------------------+
-   | u(32)  | The height of the picture in pixels.                     |
+   | u(32)  | 图像高度，单位是像素。                                   |
    +--------+----------------------------------------------------------+
-   | u(32)  | The color depth of the picture in bits per               |
-   |        | pixel.                                                   |
+   | u(32)  | 图像的颜色位深度，单位是每像素颜色位深度。               |
    +--------+----------------------------------------------------------+
    | u(32)  | For indexed-color pictures (e.g., GIF), the              |
    |        | number of colors used; 0 for non-indexed                 |
    |        | pictures.                                                |
    +--------+----------------------------------------------------------+
-   | u(32)  | The length of the picture data in bytes.                 |
+   | u(32)  | 图像数据的长度，单位是字节数。                           |
    +--------+----------------------------------------------------------+
-   | u(n*8) | The binary picture data.                                 |
+   | u(n*8) | 二进制格式的图像数据。                                   |
    +--------+----------------------------------------------------------+
 
-                                  Table 12
+                                  表格 12
 
    The height, width, color depth, and "number of colors" fields are for
    informational purposes only.  Applications MUST NOT use them in
