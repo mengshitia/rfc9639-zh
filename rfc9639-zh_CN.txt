@@ -1805,11 +1805,10 @@ ISSN: 2070-1721                                            December 2024
    +--------+----------------------------------------------------------+
    | u(32)  | 图像高度，单位是像素。                                   |
    +--------+----------------------------------------------------------+
-   | u(32)  | 图像的颜色位深度，单位是每像素颜色位深度。               |
+   | u(32)  | 图像的色彩深度，单位是位/像素。                          |
    +--------+----------------------------------------------------------+
-   | u(32)  | For indexed-color pictures (e.g., GIF), the              |
-   |        | number of colors used; 0 for non-indexed                 |
-   |        | pictures.                                                |
+   | u(32)  | 索引颜色图像（如 GIF）所使用的色彩数量；                 |
+   |        | 0 表示非索引颜色图像。                                   |
    +--------+----------------------------------------------------------+
    | u(32)  | 图像数据的长度，单位是字节数。                           |
    +--------+----------------------------------------------------------+
@@ -1827,6 +1826,12 @@ ISSN: 2070-1721                                            December 2024
    vector images may not have a height or width in pixels) or the
    content of any field is unknown, the affected fields MUST be set to
    zero.
+   高度、宽度、颜色深度和“色彩数量”字段仅用于提供信息。应用程序
+   「不得」（MUST NOT）将这些字段提供的信息用于解码和显示图像，但
+   「可以」（MAY）用以决定是否处理某个数据块（比如选择不同的图像数据块）
+   并将图像展示给用户。如果图像没有与这些字段相关的信息（例如矢量图可能
+   没有以像素为单位的高度和宽度信息）或这些字段的值是未知的，涉及到的
+   字段值「必须」（MUST）为 0。
 
    The following table contains all the defined picture types.  Values
    other than those listed in the table are reserved.  There MAY only be
@@ -1834,76 +1839,91 @@ ISSN: 2070-1721                                            December 2024
    many FLAC playback devices and software display the contents of a
    picture metadata block, if present, with picture type 3 (front cover)
    during playback.
+   下面的表格中包含了所有已定义的图像类型。表格中未包含的值已保留。
+   其中图像类型 1 和 2 只能出现其中的一种。在实际应用中，许多 FLAC 回放
+   设备和软件通常会在回放时展示图像元数据块中类型为 3（即封面）的图像
+   （假设此图像存在）。
 
         +=======+=================================================+
-        | Value | Picture Type                                    |
+        | 值    | 图像类型                                        |
         +=======+=================================================+
-        | 0     | Other                                           |
+        | 0     | 其他                                            |
         +-------+-------------------------------------------------+
-        | 1     | PNG file icon of 32x32 pixels (see [RFC2083])   |
+        | 1     | 32x32 像素的 PNG 图标（参见 RFC 2083）。        |
         +-------+-------------------------------------------------+
-        | 2     | General file icon                               |
+        | 2     | 通用文件图标                                    |
         +-------+-------------------------------------------------+
-        | 3     | Front cover                                     |
+        | 3     | 封面                                            |
         +-------+-------------------------------------------------+
-        | 4     | Back cover                                      |
+        | 4     | 封底                                            |
         +-------+-------------------------------------------------+
         | 5     | Liner notes page                                |
         +-------+-------------------------------------------------+
-        | 6     | Media label (e.g., CD, Vinyl or Cassette label) |
+        | 6     | 媒体标签（例如 CD、Vinyl 或 Cassette）。        |
         +-------+-------------------------------------------------+
-        | 7     | Lead artist, lead performer, or soloist         |
+        | 7     | 主要艺术家、主演或独奏                          |
         +-------+-------------------------------------------------+
-        | 8     | Artist or performer                             |
+        | 8     | 艺术家或演出者                                  |
         +-------+-------------------------------------------------+
-        | 9     | Conductor                                       |
+        | 9     | 指挥家                                          |
         +-------+-------------------------------------------------+
-        | 10    | Band or orchestra                               |
+        | 10    | 乐队或管弦乐队                                  |
         +-------+-------------------------------------------------+
-        | 11    | Composer                                        |
+        | 11    | 作曲家                                          |
         +-------+-------------------------------------------------+
-        | 12    | Lyricist or text writer                         |
+        | 12    | 作词家或文字工作者                              |
         +-------+-------------------------------------------------+
-        | 13    | Recording location                              |
+        | 13    | 录制地点                                        |
         +-------+-------------------------------------------------+
-        | 14    | During recording                                |
+        | 14    | 录制期间                                        |
         +-------+-------------------------------------------------+
-        | 15    | During performance                              |
+        | 15    | 演出期间                                        |
         +-------+-------------------------------------------------+
-        | 16    | Movie or video screen capture                   |
+        | 16    | 影片或视频截屏                                  |
         +-------+-------------------------------------------------+
-        | 17    | A bright colored fish                           |
+        | 17    | 一条色彩鲜艳的鱼（译注：原文如此。）            |
         +-------+-------------------------------------------------+
-        | 18    | Illustration                                    |
+        | 18    | 插图                                            |
         +-------+-------------------------------------------------+
-        | 19    | Band or artist logotype                         |
+        | 19    | 乐队或艺术家标志                                |
         +-------+-------------------------------------------------+
-        | 20    | Publisher or studio logotype                    |
+        | 20    | 发行商或工作室标志                              |
         +-------+-------------------------------------------------+
 
-                                  Table 13
+                                  表格 13
 
    The origin and use of value 17 ("A bright colored fish") is unclear.
    This was copied to maintain compatibility with ID3v2.  Applications
    are discouraged from offering this value to users when embedding a
    picture.
+   数值 17，“一条色彩鲜艳的鱼”的来源和用途未知，仅仅是为了兼容 ID3v2
+   而将此值直接拷贝而来。不推荐应用程序将此值对应的信息提供给用户。
 
    If a URI (not a picture) is contained in this block, the following
    points apply:
+   如果此元数据块中包含信息的是 URI 而非图像，应按照以下几点进行处理：
 
    *  The URI can be in either absolute or relative form.  If a URI is
       in relative form, it is related to the URI of the FLAC content
       processed.
+      URI 可以是绝对路径或相对路径。如果是相对路径，则该路径是相对于
+      此 FLAC 文件的 URI 的。
 
    *  Applications MUST obtain explicit user approval to retrieve images
       via remote protocols and to retrieve local images that are not
       located in the same directory as the FLAC file being processed.
+      应用程序「必须」（MUST）获得明确的用户许可后方可获取远程位置上的
+      图像或是获取不位于此 FLAC 文件相同目录下的本地图像。
 
    *  Applications supporting linked images MUST handle unavailability
       of URIs gracefully.  They MAY report unavailability to the user.
+      支持图像链接的应用程序「必须」（MUST）优雅地处理图像缺失的情况，
+      「可以」（MUST）向用户报告图像缺失的情况。
 
    *  Applications MAY reject processing URIs for any reason,
       particularly for security or privacy reasons.
+      应用程序「可以」（MUST）以任何理由拒绝处理 URI，尤其是出于安全或
+      隐私的原因。
 
 9.  Frame Structure
 
