@@ -85,30 +85,30 @@ ISSN: 2070-1721                                            December 2024
    6.  格式布局一览
    7.  Streamable 子集
    8.  文件级元数据
-     8.1.  Metadata Block Header
-     8.2.  Streaminfo
-     8.3.  Padding
-     8.4.  Application
-     8.5.  Seek Table
-       8.5.1.  Seek Point
-     8.6.  Vorbis Comment
-       8.6.1.  Standard Field Names
-       8.6.2.  Channel Mask
-     8.7.  Cuesheet
-       8.7.1.  Cuesheet Track
-     8.8.  Picture
-   9.  Frame Structure
-     9.1.  Frame Header
-       9.1.1.  Block Size Bits
-       9.1.2.  Sample Rate Bits
-       9.1.3.  Channels Bits
-       9.1.4.  Bit Depth Bits
-       9.1.5.  Coded Number
-       9.1.6.  Uncommon Block Size
-       9.1.7.  Uncommon Sample Rate
-       9.1.8.  Frame Header CRC
-     9.2.  Subframes
-       9.2.1.  Subframe Header
+     8.1.  元数据块头部
+     8.2.  数据流信息
+     8.3.  填充比特位
+     8.4.  应用程序
+     8.5.  定位表
+       8.5.1.  定位点
+     8.6.  Vorbis 注释
+       8.6.1.  标准字段名称
+       8.6.2.  通道掩码
+     8.7.  Cue 表
+       8.7.1.  Cue 表中的音轨
+     8.8.  图像
+   9.  数据帧结构
+     9.1.  数据帧头部
+       9.1.1.  数据块大小
+       9.1.2.  采样率
+       9.1.3.  通道数量
+       9.1.4.  位深度
+       9.1.5.  编码后的序号
+       9.1.6.  罕见数据块大小
+       9.1.7.  罕见采样率
+       9.1.8.  数据帧头部的循环冗余校验码
+     9.2.  子数据帧
+       9.2.1.  子数据帧头部
        9.2.2.  Wasted Bits per Sample
        9.2.3.  Constant Subframe
        9.2.4.  Verbatim Subframe
@@ -715,7 +715,7 @@ ISSN: 2070-1721                                            December 2024
          +-----------------------------------------+-------------+
          | 在表示采样率的位置禁止使用 0b1111       | 9.1.2 节    |
          +-----------------------------------------+-------------+
-         | 不寻常的数据块大小：65536               | 9.1.6 节    |
+         | 罕见数据块大小：65536                   | 9.1.6 节    |
          +-----------------------------------------+-------------+
          | 表示预测模型系数精度时禁止使用 0b1111   | 9.2.6 节    |
          +-----------------------------------------+-------------+
@@ -1925,12 +1925,15 @@ ISSN: 2070-1721                                            December 2024
       应用程序「可以」（MUST）以任何理由拒绝处理 URI，尤其是出于安全或
       隐私的原因。
 
-9.  Frame Structure
+9.  数据帧结构
 
    One or more frames follow directly after the last metadata block.
    Each frame consists of a frame header, one or more subframes, padding
    zero bits to achieve byte alignment, and a frame footer.  The number
    of subframes in each frame is equal to the number of audio channels.
+   最后一个元数据块后紧跟着的是一个或多个数据帧。每个数据帧都由一个
+   数据帧头部、一个或多个子数据帧、用于对齐字节的 0 填充比特位以及一个
+   数据帧尾部组成。每个数据帧包含的子数据帧数量等于音频通道数量。
 
    Each frame header stores the audio sample rate, number of bits per
    sample, and number of channels independently of the streaminfo
@@ -1941,6 +1944,11 @@ ISSN: 2070-1721                                            December 2024
    during playback, a decoder MAY choose to stop decoding on such a
    change.  A decoder that does not check for such a change could be
    vulnerable to buffer overflows.  See also Section 11.
+   数据帧头部存储了音频采样率、采样深度（位深度）以及独立于数据流信息
+   元数据块和其他数据帧头部的通道数量。这么做的原因是允许 FLAC 多播和
+   回放时修改属性值。由于并非所有 FLAC 解码器所在的环境允许其处理这种
+   属性值变化，解码器「可以」（MAY）终止解码。如果不检测属性值变化，
+   解码器可能会有缓冲区溢出的风险。另见第 11 节。
 
    Note that storing audio with changing audio properties in FLAC
    results in various practical problems.  For example, these changes of
@@ -1955,8 +1963,16 @@ ISSN: 2070-1721                                            December 2024
    stream with changing properties in FLAC encapsulated in a container
    capable of handling such changes, as these do not suffer from the
    mentioned limitations.  See Section 10 for details.
+   注意，在 FLAC 中存储变化的音频属性会导致很多实际问题。这样的
+   属性值变化必须在一个数据帧内完成，否则音频数据将不是无损的。在采用了
+   可变数据块大小以适应此特性的数据流中，由于不允许出现小于 16 个
+   采样数量的数据块，也就无法存储文件最后或开头的少于 16 个采样数量的
+   变化。同时，数据流信息元数据块只适用于一组属性，这样的变化只适用于
+   音频流的部分内容。因此，对于需要存储变化的音频属性的情况，
+   「建议」（RECOMMENDED）将这些属性值存储到支持的容器中以避免上述问题。
+   详情请参见第 10 节。
 
-9.1.  Frame Header
+9.1.  数据帧头部
 
    Each frame MUST start on a byte boundary and start with the 15-bit
    frame sync code 0b111111111111100.  Following the sync code is the
@@ -1967,8 +1983,15 @@ ISSN: 2070-1721                                            December 2024
    to reduce the possibility of encountering a false positive, as the
    first two bytes of a frame are either 0xFFF8 for a fixed block size
    stream or 0xFFF9 for a variable block size stream.
+   数据帧的起始位置「必须」（MUST）对齐字节边界，以 15 位帧同步码开始，
+   即 0b111111111111100。同步码后面是 1 位表示数据分块策略的标识位，该
+   标识在音频流中「不得」（MUST NOT）发生变化。其中 0 表示采用了固定的
+   数据块大小，1 表示采用了可变的数据块大小。如果此标识位已明确，解码器
+   应在搜索数据帧起始位置时考虑这一点，以降低发生假正例的可能性，因为
+   数据帧的前两个字节只能是 0xFFF8 或者 0xFFF9，分别对应固定数据块大小和
+   可变数据块大小的情况。
 
-9.1.1.  Block Size Bits
+9.1.1.  数据块大小
 
    Following the frame sync code and blocking strategy bit are 4 bits
    (the first 4 bits of the third byte of each frame) referred to as the
@@ -1976,29 +1999,31 @@ ISSN: 2070-1721                                            December 2024
    the following table, where v is the value of the 4 bits as an
    unsigned number.  If the block size bits code for an uncommon block
    size, this is stored after the coded number; see Section 9.1.6.
+   在帧同步码和数据分块策略标识位之后是用于表示数据块大小的 4 个比特位，
+   即每个数据帧的第 3 个字节中的前 4 个比特位。其值与相应的数据块大小的
+   关系如下表所示，其中 v 是这 4 个比特位所表示的无符号整数。如果其值
+   表示罕见数据块大小，该值会存储在编码后的序号之后，参见第 9.1.6 节。
 
      +=================+=============================================+
-     | Value           | Block Size                                  |
+     | 值              | 数据块大小                                  |
      +=================+=============================================+
-     | 0b0000          | Reserved                                    |
+     | 0b0000          | 保留                                        |
      +-----------------+---------------------------------------------+
      | 0b0001          | 192                                         |
      +-----------------+---------------------------------------------+
-     | 0b0010 - 0b0101 | 144 * (2^v), i.e., 576, 1152, 2304, or 4608 |
+     | 0b0010 - 0b0101 | 144 * (2^v)，例如 576、1152、2304 或 4608   |
      +-----------------+---------------------------------------------+
-     | 0b0110          | Uncommon block size minus 1, stored as an   |
-     |                 | 8-bit number                                |
+     | 0b0110          | 罕见数据块大小减去 1，以 8 位数字存储       |
      +-----------------+---------------------------------------------+
-     | 0b0111          | Uncommon block size minus 1, stored as a    |
-     |                 | 16-bit number                               |
+     | 0b0111          | 罕见数据块大小减去 1，以 16 位数字存储      |
      +-----------------+---------------------------------------------+
-     | 0b1000 - 0b1111 | 2^v, i.e., 256, 512, 1024, 2048, 4096,      |
-     |                 | 8192, 16384, or 32768                       |
+     | 0b1000 - 0b1111 | 2^v，例如 256、512、1024、2048、4096、      |
+     |                 | 8192、16384 或 32768                        |
      +-----------------+---------------------------------------------+
 
-                                  Table 14
+                                  表格 14
 
-9.1.2.  Sample Rate Bits
+9.1.2.  采样率
 
    The next 4 bits (the last 4 bits of the third byte of each frame),
    referred to as the sample rate bits, contain the sample rate of the
@@ -2006,12 +2031,16 @@ ISSN: 2070-1721                                            December 2024
    for an uncommon sample rate, this is stored after the uncommon block
    size; if no uncommon block size was used, this is stored after the
    coded number.  See Section 9.1.7.
+   在表示数据块大小的比特位之后的是用于表示采样率的4 个比特位，即每个
+   数据帧的第 3 个字节的后 4 个比特位。其值所代表的采样率如下表所示。
+   如果其值代表一个罕见的采样率，实际的采样率值将存储在罕见数据块大小的
+   后面；如果其值不表示罕见采样率，其值将存储在编码后的序号之后。参见
+   第 9.1.7 节。
 
    +========+==========================================================+
-   | Value  | Sample Rate                                              |
+   | 值     | 采样率                                                   |
    +========+==========================================================+
-   | 0b0000 | Sample rate only stored in the                           |
-   |        | streaminfo metadata block                                |
+   | 0b0000 | 使用数据流信息元数据块中的采样率                         |
    +--------+----------------------------------------------------------+
    | 0b0001 | 88.2 kHz                                                 |
    +--------+----------------------------------------------------------+
@@ -2035,26 +2064,26 @@ ISSN: 2070-1721                                            December 2024
    +--------+----------------------------------------------------------+
    | 0b1011 | 96 kHz                                                   |
    +--------+----------------------------------------------------------+
-   | 0b1100 | Uncommon sample rate in kHz,                             |
-   |        | stored as an 8-bit number                                |
+   | 0b1100 | 罕见采样率，单位 kHz，以 8 位数字存储                    |
    +--------+----------------------------------------------------------+
-   | 0b1101 | Uncommon sample rate in Hz, stored                       |
-   |        | as a 16-bit number                                       |
+   | 0b1101 | 罕见采样率，单位 Hz，以 16 位数字存储                    |
    +--------+----------------------------------------------------------+
-   | 0b1110 | Uncommon sample rate in Hz divided                       |
-   |        | by 10, stored as a 16-bit number                         |
+   | 0b1110 | 罕见采样率，单位十分之一 Hz，以 16 位数字存储            |
    +--------+----------------------------------------------------------+
-   | 0b1111 | Forbidden                                                |
+   | 0b1111 | 禁止使用                                                 |
    +--------+----------------------------------------------------------+
 
-                                  Table 15
+                                  表格 15
 
-9.1.3.  Channels Bits
+9.1.3.  通道数量
 
    The next 4 bits (the first 4 bits of the fourth byte of each frame),
    referred to as the channels bits, contain both the number of channels
    of the audio as well as any stereo decorrelation used according to
    the following table.
+   表示采样率的比特位之后的是用于表示通道数量的 4 个比特位，即每个数据帧
+   的第 4 个字节的前 4 个比特位。其表示的通道数量和立体声声道去相关性的
+   信息如下表所示。
 
    If a channel layout different than the ones listed in the following
    table is used, this can be signaled with a
@@ -2066,74 +2095,78 @@ ISSN: 2070-1721                                            December 2024
    actual number of channels coded in the frame.  For details on the way
    left-side, side-right, and mid-side stereo are coded, see
    Section 4.2.
+   如果音频声道布局与下表中所使用的不同，应在 Vorbis 注释元数据块中使用
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签进行描述，参见第 8.6.2 节。
+   注意，就算用 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 覆盖下表所示的
+   音频声道布局，这里依然会存储表示实际通道数量的值。通道间去相关性的
+   详情请参见第 4.2 节。
 
      +==========+====================================================+
-     | Value    | Channels                                           |
+     | 值       | 通道数                                             |
      +==========+====================================================+
-     | 0b0000   | 1 channel: mono                                    |
+     | 0b0000   | 1 条通道：单声道                                   |
      +----------+----------------------------------------------------+
-     | 0b0001   | 2 channels: left, right                            |
+     | 0b0001   | 2 条通道：左和右                                   |
      +----------+----------------------------------------------------+
-     | 0b0010   | 3 channels: left, right, center                    |
+     | 0b0010   | 3 条通道：左、右、中央                             |
      +----------+----------------------------------------------------+
-     | 0b0011   | 4 channels: front left, front right, back left,    |
-     |          | back right                                         |
+     | 0b0011   | 4 条通道：左前、右前、左后、右后                   |
      +----------+----------------------------------------------------+
-     | 0b0100   | 5 channels: front left, front right, front center, |
-     |          | back/surround left, back/surround right            |
+     | 0b0100   | 5 条通道：左前、右前、中前、左后/左侧、右后/右侧   |
      +----------+----------------------------------------------------+
-     | 0b0101   | 6 channels: front left, front right, front center, |
-     |          | LFE, back/surround left, back/surround right       |
+     | 0b0101   | 6 条通道：左前、右前、中前、低频音效（LFE）、      |
+     |          | 左后/左侧、右后/右侧                               |
      +----------+----------------------------------------------------+
-     | 0b0110   | 7 channels: front left, front right, front center, |
-     |          | LFE, back center, side left, side right            |
+     | 0b0110   | 7 条通道：左前、右前、中前、低频音效（LFE）、      |
+     |          | 中后、左侧、右侧                                   |
      +----------+----------------------------------------------------+
-     | 0b0111   | 8 channels: front left, front right, front center, |
-     |          | LFE, back left, back right, side left, side right  |
+     | 0b0111   | 8 条通道：左前、右前、中前、低频音效（LFE）、      |
+     |          | 左后、右后、左侧、右侧                             |
      +----------+----------------------------------------------------+
-     | 0b1000   | 2 channels: left, right; stored as left-side       |
-     |          | stereo                                             |
+     | 0b1000   | 2 条通道：左、右；以左侧立体声存储                 |
      +----------+----------------------------------------------------+
-     | 0b1001   | 2 channels: left, right; stored as side-right      |
-     |          | stereo                                             |
+     | 0b1001   | 2 条通道：左、右；以右侧立体声存储                 |
      +----------+----------------------------------------------------+
-     | 0b1010   | 2 channels: left, right; stored as mid-side stereo |
+     | 0b1010   | 2 条通道：左、右；以中间侧立体声存储               |
      +----------+----------------------------------------------------+
-     | 0b1011 - | Reserved                                           |
+     | 0b1011 - | 保留                                               |
      | 0b1111   |                                                    |
      +----------+----------------------------------------------------+
 
-                                  Table 16
+                                  表格 16
 
-9.1.4.  Bit Depth Bits
+9.1.4.  位深度
 
    The next 3 bits (bits 5, 6, and 7 of each fourth byte of each frame)
    contain the bit depth of the audio according to the following table.
    The next bit is reserved and MUST be zero.
+   表示通道数量的比特位之后的是用于表示位深度的 3 个比特位，即每个数据帧
+   的第 4 个字节的第 5、6 和 7 位比特位（第 8 位比特位保留且
+   「必须」（MUST）为 0）。
 
     +=======+========================================================+
-    | Value | Bit Depth                                              |
+    | 值    | 位深度                                                 |
     +=======+========================================================+
-    | 0b000 | Bit depth only stored in the streaminfo metadata block |
+    | 0b000 | 使用数据流信息元数据块中的位深度                       |
     +-------+--------------------------------------------------------+
-    | 0b001 | 8 bits per sample                                      |
+    | 0b001 | 8 位                                                   |
     +-------+--------------------------------------------------------+
-    | 0b010 | 12 bits per sample                                     |
+    | 0b010 | 12 位                                                  |
     +-------+--------------------------------------------------------+
-    | 0b011 | Reserved                                               |
+    | 0b011 | 保留                                                   |
     +-------+--------------------------------------------------------+
-    | 0b100 | 16 bits per sample                                     |
+    | 0b100 | 16 位                                                  |
     +-------+--------------------------------------------------------+
-    | 0b101 | 20 bits per sample                                     |
+    | 0b101 | 20 位                                                  |
     +-------+--------------------------------------------------------+
-    | 0b110 | 24 bits per sample                                     |
+    | 0b110 | 24 位                                                  |
     +-------+--------------------------------------------------------+
-    | 0b111 | 32 bits per sample                                     |
+    | 0b111 | 32 位                                                  |
     +-------+--------------------------------------------------------+
 
-                                 Table 17
+                                 表格 17
 
-9.1.5.  Coded Number
+9.1.5.  编码后的序号
 
    Following the reserved bit (starting at the fifth byte of the frame)
    is either a sample or a frame number, which will be referred to as
@@ -2143,10 +2176,17 @@ ISSN: 2070-1721                                            December 2024
    See Section 9.1 on the blocking strategy bit, which signals whether a
    stream is a fixed block size stream or a variable block size stream.
    See also Appendix B.1.
+   每个数据帧的第 5 个字节开始是编码后的序号，可以是采样信号的序号也可以
+   是数据帧的序号。对于可变数据块大小的数据流而言，编码的是数据帧中的
+   第一个采样信号的序号；对于固定数据块大小的数据流而言，编码的是数据帧
+   的序号。参见第 9.1 节中关于数据分块策略标识位的有关内容，另见
+   附录 B.1。
 
    The coded number is stored in a variable-length code like UTF-8 as
    defined in [RFC3629] but extended to a maximum of 36 bits unencoded
    or 7 bytes encoded.
+   编码后的序号以类似 UTF-8 的可变长度编码形式存储（参见 RFC 3629），
+   但可以扩展到最大 36 位长的未编码或 7 字节长的编码格式。
 
    When a frame number is encoded, the value MUST NOT be larger than
    what fits a value of 31 bits unencoded or 6 bytes encoded.  Please
@@ -2158,9 +2198,15 @@ ISSN: 2070-1721                                            December 2024
    of using a character number, use a frame or sample number.  In
    addition, use the extended table below instead of the table in
    Section 3 of [RFC3629].
+   当编码的是数据帧序号，其最大值「不得」（MUST NOT）超过 31 位未编码或
+   6 字节编码格式所能表示的最大值。请注意，绝大多数通用的 UTF-8 编码器和
+   解码器都遵循 RFC 3629，因此它们无法处理这些扩展编码。此外，UTF-8 编码
+   被指定用于编码字符，但 FLAC 用其编码数字。请按照 RFC 3629 第 3 节中的
+   步骤进行编码和解码操作，但要注意这里用到的是数据帧或采样信号的编号，
+   不是字符；此外，应参照下面的表格，不要参照 RFC 3629 第 3 节里的表格。
 
    +============================+=====================================+
-   | Number Range (Hexadecimal) | Octet Sequence (Binary)             |
+   | 数字范围（十六进制）       | 8 位一组的序列（二进制）            |
    +============================+=====================================+
    | 0000 0000 0000 -           | 0xxxxxxx                            |
    | 0000 0000 007F             |                                     |
@@ -2184,38 +2230,47 @@ ISSN: 2070-1721                                            December 2024
    | 000F FFFF FFFF             | 10xxxxxx 10xxxxxx 10xxxxxx          |
    +----------------------------+-------------------------------------+
 
-                                 Table 18
+                                 表格 18
 
    If the coded number is a frame number, it MUST be equal to the number
    of frames preceding the current frame.  If the coded number is a
    sample number, it MUST be equal to the number of samples preceding
    the current frame.  In a stream where these requirements are not met,
    seeking is not (reliably) possible.
+   如果编码的是数据帧序号，其值「必须」（MUST）等于该数据帧之前的数据帧
+   的数量。如果编码的是采样信号的序号，其值「必须」（MUST）等于该数据帧
+   之前的采样信号的数量。无法（或不能保证）在不满足上述要求的数据流中
+   查找特定的数据帧。
 
    For example, for a frame that belongs to a variable block size stream
    and has exactly 51 billion samples preceding it, the coded number is
    constructed as follows:
+   假设某个可变数据块大小的数据流中的一个数据帧，其前面正好有
+   五百一十亿个采样信号，则编码后的序号的结构如下所示：
 
-   Octets 1-5
+   前 5 个 8 位一组的二进制序列
    0b11111110 0b10101111 0b10011111 0b10110101 0b10100011
                   ^^^^^^     ^^^^^^     ^^^^^^     ^^^^^^
-                    |          |          |      Bits 18-13
-                    |          |      Bits 24-19
-                    |      Bits 30-25
-                Bits 36-31
+                    |          |          |       18-13 位
+                    |          |       24-19 位
+                    |       30-25 位
+                 36-31 位
 
-   Octets 6-7
+   第 6 和 7 个 8 位一组的二进制序列
    0b10111000 0b10000000
        ^^^^^^     ^^^^^^
-         |       Bits 6-1
-     Bits 12-7
+         |        6-1 位
+       12-7 位
 
    A decoder that relies on the coded number during seeking could be
    vulnerable to buffer overflows or getting stuck in an infinite loop
    if it seeks in a stream where the coded numbers are not strictly
    increasing or are otherwise not valid.  See also Section 11.
+   如果编码的序号不按照顺序严格递增，或是其他非法形式，对于依赖此序号
+   查找数据帧的解码器将有缓冲区溢出的风险，或卡在无限循环里。另见
+   第 11 节。
 
-9.1.6.  Uncommon Block Size
+9.1.6.  罕见数据块大小
 
    If the block size bits defined earlier in this section are 0b0110 or
    0b0111 (uncommon block size minus 1 stored), the block size minus 1
@@ -2226,59 +2281,80 @@ ISSN: 2070-1721                                            December 2024
    0 up to (and including) 14, which corresponds to a block size from 1
    to 15, is only valid for the last frame in a stream and MUST NOT be
    used for any other frame.  See also Section 8.2.
+   在之前的章节中定义的表示数据块大小的比特位的值如果是 0b0110 或 0b0111
+   （即罕见数据块大小减去 1），那么这里的数据块大小将首先减去 1，然后以
+   一段 8 位或 16 位的大端序无符号整数形式编码保存。其中数值 65535（即
+   对应一个 65536 大小的数据块）是「禁止」（MUST NOT）使用的，因为如此
+   大小的数值在数据流信息元数据块中无法表示。从 0 到（包括）14 的数值
+   （对应 1 到 15 大小的数据块）只能用于数据流的最后一个数据帧，并且
+   「不得」（MUST NOT）用于其他任何一个数据帧。另见第 8.2 节。
 
-9.1.7.  Uncommon Sample Rate
+9.1.7.  罕见采样率
 
    If the sample rate bits are 0b1100, 0b1101, or 0b1110 (uncommon
    sample rate stored), the sample rate follows the uncommon block size
    (or the coded number if no uncommon block size is stored) as either
    an 8-bit or a 16-bit unsigned number coded big-endian.
+   如果之前表示采样率的比特位是 0b1100、0b1101 或 0b1110
+   （即罕见采样率），那么采样率将以 8 位或 16 位的大端序无符号整数形式
+   存储在罕见数据块大小的后面（如果没有罕见数据块大小，就会存储在
+   编码后的序号后面）。
 
    The sample rate MUST NOT be 0 when the subframe contains audio.  A
    sample rate of 0 MAY be used when non-audio is represented.  See
    Section 8.2 for details.
+   当子数据帧包含音频时，采样率「不得」（MUST NOT）为 0。为 0 的采样率
+   「可以」（MAY）用在表示非音频的数据上。详情请参见第 8.2 节。
 
-9.1.8.  Frame Header CRC
+9.1.8.  数据帧头部的循环冗余校验码
 
    Finally, an 8-bit CRC follows the frame/sample number, an uncommon
    block size, or an uncommon sample rate (depending on whether the
    latter two are stored).  This CRC is initialized with 0 and has the
    polynomial x^8 + x^2 + x^1 + x^0.  This CRC covers the whole frame
    header before the CRC, including the sync code.
+   数据帧头部的最后是一段 8 位长的循环冗余校验码（CRC），初始值为 0，
+   是 x^8 + x^2 + x^1 + x^0 的多项式形式。这段校验码覆盖的范围是除自身
+   以外的整个数据帧头部，包括同步码。
 
-9.2.  Subframes
+9.2.  子数据帧
 
    Following the frame header are a number of subframes equal to the
    number of audio channels.  Note that subframes contain a bitstream
    that does not necessarily have to be a whole number of bytes, so only
    the first subframe starts at a byte boundary.
+   数据帧头部后面是数量等于音频通道数的子数据帧。注意子数据帧由可能包含
+   一个非整数字节的比特流，因此只有第一个子数据帧是对齐字节边界的。
 
-9.2.1.  Subframe Header
+9.2.1.  子数据帧头部
 
    Each subframe starts with a header.  The first bit of the header MUST
    be 0, followed by 6 bits that describe which subframe type is used
    according to the following table, where v is the value of the 6 bits
    as an unsigned number.
+   子数据帧以帧头开始，其第一个比特位「必须」（MUST）是 0，后续的 6 个
+   比特位用于表示子数据帧的类型，下表中罗列了相应的值和类型，其中 v 是
+   这 6 个比特位以无符号整数表示的数值。
 
     +=====================+===========================================+
-    | Value               | Subframe Type                             |
+    | 值                  | 子数据帧类型                              |
     +=====================+===========================================+
-    | 0b000000            | Constant subframe                         |
+    | 0b000000            | Constant 子帧                             |
     +---------------------+-------------------------------------------+
-    | 0b000001            | Verbatim subframe                         |
+    | 0b000001            | Verbatim 子帧                             |
     +---------------------+-------------------------------------------+
-    | 0b000010 - 0b000111 | Reserved                                  |
+    | 0b000010 - 0b000111 | 保留                                      |
     +---------------------+-------------------------------------------+
-    | 0b001000 - 0b001100 | Subframe with a fixed predictor of order  |
-    |                     | v-8; i.e., 0, 1, 2, 3 or 4                |
+    | 0b001000 - 0b001100 | 采用了固定参数的预测模型的子帧，          |
+    |                     | 预测模型的阶数为 v-8，即 0、1、2、3 或 4  |
     +---------------------+-------------------------------------------+
-    | 0b001101 - 0b011111 | Reserved                                  |
+    | 0b001101 - 0b011111 | 保留                                      |
     +---------------------+-------------------------------------------+
-    | 0b100000 - 0b111111 | Subframe with a linear predictor of order |
-    |                     | v-31; i.e., 1 through 32 (inclusive)      |
+    | 0b100000 - 0b111111 | 采用了线性预测模型的子帧，预测模型的阶数  |
+    |                     | 为 v-31，即 1 到 32（包含首尾数值）       |
     +---------------------+-------------------------------------------+
 
-                                  Table 19
+                                  表格 19
 
    Following the subframe type bits is a bit that flags whether the
    subframe uses any wasted bits (see Section 9.2.2).  If the flag bit
@@ -2286,8 +2362,12 @@ ISSN: 2070-1721                                            December 2024
    header is complete.  If the flag bit is 1, the subframe uses wasted
    bits and the number of used wasted bits minus 1 appears in unary
    form, directly following the flag bit.
+   此字节的最后的 1 个比特位是一位标识符，用于标记此子数据帧是否含有任何
+   浪费的比特位（参见第 9.2.2 节）。0 表示此子帧没有任何浪费的比特位，即
+   子帧头部完整。1 表示此子帧含有浪费的比特位，浪费的比特位的数量以
+   一进制形式紧随此标识符存储。
 
-9.2.2.  Wasted Bits per Sample
+9.2.2.  采样中浪费的比特位
 
    Most uncompressed audio file formats can only store audio samples
    with a bit depth that is an integer number of bytes.  Samples in
@@ -2299,6 +2379,12 @@ ISSN: 2070-1721                                            December 2024
    these least-significant zero bits are referred to as wasted bits per
    sample or simply wasted bits.  They are wasted in the sense that they
    contain no information but are stored anyway.
+   大多数未压缩的音频文件格式只能以整数倍字节数的位深度存储音频的
+   采样信号，除此以外的非整数倍位深度的采样信号通常需要从最低位填充 0 以
+   对齐字节边界。例如，位深度为 14 的采样信号通过右移 2 位变成位深度为
+   16 位的采样信号，其右移时在最低位填充了 2 位 0。在本文的规定中，这些
+   填充位就是每个采样信号中浪费的比特位，简称浪费的比特位。之所以“浪费”
+   是因为这些比特位不包含任何有用的信息，但也占据了存储空间。
 
    The FLAC format can optionally take advantage of these wasted bits by
    signaling their presence and coding the subframe without them.  To do
