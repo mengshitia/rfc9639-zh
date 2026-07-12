@@ -2450,23 +2450,33 @@ ISSN: 2070-1721                                            December 2024
    subframe header (see Section 9.2.2).  If a subframe is a side
    subframe (see Section 4.2), the bit depth of that subframe is
    increased by 1 bit.
+   Constant 子数据帧中只存有一个采样信号，该采样以大端序有符号整数的补码
+   形式存储。存储该值所需要的比特位由此子数据帧的位深度决定。而子数据帧
+   的位深度等于数据帧头部中编码的位深度（见第 9.1.4 节）减去子数据帧头部中
+   编码的无用比特位数量（见第 9.2.2 节）。对于侧编码的子数据帧，位深度
+   还需要增加 1 位。
 
-9.2.4.  Verbatim Subframe
+9.2.4.  Verbatim 子帧
 
    A verbatim subframe stores all samples unencoded in sequential order.
    See Section 9.2.3 on how a sample is stored unencoded.  The number of
    samples that need to be stored in a subframe is provided by the block
    size in the frame header.
+   Verbatim 子数据帧中按顺序储存了所有未编码的采样信号。关于如何存储
+   未编码的采样信号请参见第 9.2.3 节。数据帧头部的数据块大小字段的值就是
+   子数据帧可以存储的采样信号的数量。
 
-9.2.5.  Fixed Predictor Subframe
+9.2.5.  采用固定预测模型的子帧
 
    Five different fixed predictors are defined in the following table,
    one for each prediction order 0 through 4.  The table also contains a
    derivation that explains the rationale for choosing these fixed
    predictors.
+   下表中定义了 5 种不同的固定预测模型，其阶数从 0 到 4。此表还包含了
+   一些派生形式，用于解释选择这些固定预测模型的理由。
 
     +=======+==================================+======================+
-    | Order | Prediction                       | Derivation           |
+    | 阶数  | 预测模型                         | 派生形式             |
     +=======+==================================+======================+
     | 0     | 0                                | N/A                  |
     +-------+----------------------------------+----------------------+
@@ -2481,25 +2491,33 @@ ISSN: 2070-1721                                            December 2024
     |       | a(n-3) - a(n-4)                  | a''(n-1) + a'''(n-1) |
     +-------+----------------------------------+----------------------+
 
-                                  Table 20
+                                  表格 20
 
    Where:
+   其中：
 
    *  n is the number of the sample being predicted.
+      n 是待预测的采样信号的编号。
 
    *  a(n) is the sample being predicted.
+      a(n) 是待预测的采样信号。
 
    *  a(n-1) is the sample before the one being predicted.
+      a(n-1) 是待预测的采样信号的前一个采样信号。
 
    *  a'(n-1) is the difference between the previous sample and the
       sample before that, i.e., a(n-1) - a(n-2).  This is the closest
       available first-order discrete derivative.
+      a'(n-1) 是前一个采样信号与再往前一个采样信号的差值，即
+      a(n-1) - a(n-2)。这是 1 阶预测模型最接近的派生形式。
 
    *  a''(n-1) is a'(n-1) - a'(n-2) or the closest available second-
       order discrete derivative.
+      a''(n-1) 即 a'(n-1) - a'(n-2) 或 2 阶预测模型最接近的派生形式。
 
    *  a'''(n-1) is a''(n-1) - a''(n-2) or the closest available third-
       order discrete derivative.
+      a'''(n-1) 即 a''(n-1) - a''(n-2) 或 3 阶模型最接近的派生形式。
 
    As a predictor makes use of samples preceding the sample that is
    predicted, it can only be used when enough samples are known.  As
@@ -2510,22 +2528,31 @@ ISSN: 2070-1721                                            December 2024
    residual coding stages.  See Section 9.2.3 on how samples are stored
    unencoded.  The table below defines how a fixed predictor subframe
    appears in the bitstream.
+   由于预测模型利用待预测采样信号之前的采样信号，只有采样信号足够时才能
+   进行预测。又由于 FLAC 中的每个子数据帧都是完全独立进行编码的，因此
+   每个子数据帧的前几个采样信号是无法被预测的。正因如此，一些被称为
+   “启动采样”的采样信号是需要的，这些采样的数量等于预测模型的阶数，并且
+   不经过编码、跳过预测模型与残余编码阶段而直接存储。关于采样如何不经过
+   编码直接存储，参见 9.2.3 节。下面的表格定义了采用了固定预测模型的
+   子数据帧在比特流是如何出现的。
 
          +==========+===========================================+
-         | Data     | Description                               |
+         | 数据     | 描述信息                                  |
          +==========+===========================================+
-         | s(n)     | Unencoded warm-up samples (n = subframe's |
-         |          | bits per sample * predictor order).       |
+         | s(n)     | 未编码的“启动采样”，                      |
+         |          | n = 子帧采样深度 * 预测模型的阶数。       |
          +----------+-------------------------------------------+
-         | Coded    | Coded residual as defined in              |
-         | residual | Section 9.2.7                             |
+         | 编码后的 | 参见第 9.2.7 节中的编码后的残余信号       |
+         | 残余信号 |                                           |
          +----------+-------------------------------------------+
 
-                                 Table 21
+                                 表格 21
 
    Because fixed predictors are specified, they do not have to be
    stored.  The fixed predictor order, which is stored in the subframe
    header, specifies which predictor is used.
+   固定预测模型已在此处定义，因此无需存储这些模型。模型的阶数存储于
+   子数据帧的头部，供解码器使用。
 
    To encode a signal with a fixed predictor, each sample has the
    corresponding prediction subtracted and sent to the residual coder.
