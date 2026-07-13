@@ -111,8 +111,8 @@ ISSN: 2070-1721                                            December 2024
        9.2.1.  子数据帧头部
        9.2.2.  采样中的无用比特位
        9.2.3.  Constant Subframe
-       9.2.4.  Verbatim Subframe
-       9.2.5.  Fixed Predictor Subframe
+       9.2.4.  Verbatim 子帧
+       9.2.5.  采用固定预测模型的子帧
        9.2.6.  Linear Predictor Subframe
        9.2.7.  Coded Residual
      9.3.  Frame Footer
@@ -1631,8 +1631,8 @@ ISSN: 2070-1721                                            December 2024
    +------------+------------------------------------------------------+
    | u(8)       | 音轨数量。                                           |
    +------------+------------------------------------------------------+
-   | Cue 表中的 | 与上一个字段的值相等。Cue 表中的音轨是描述音轨信息的 |
-   | 音轨数量   | 一种结构，参见第 8.7.1 节中的定义。                  |
+   | Cue 表中的 | 项目数量与上一个字段的值相等。Cue 表中的音轨是描述   |
+   | 音轨项     | 音轨信息的一种结构，参见第 8.7.1 节中的定义。        |
    +------------+------------------------------------------------------+
 
                                   表格 9
@@ -1703,9 +1703,9 @@ ISSN: 2070-1721                                            December 2024
    +-------------+-----------------------------------------------------+
    | u(8)        | 音轨中所有索引位置的数量。                          |
    +-------------+-----------------------------------------------------+
-   | Cue 表中    | 除了结束音轨以外的其他音轨中的索引位置的数量，      |
+   | Cue 表中    | 除了结束音轨以外的其他音轨中的索引位置，项目总数    |
    | 音轨的索引  | 与上一个字段的值相等。Cue 表中音轨的索引位置的定义  |
-   | 的数量      | 位于第 8.7.1.1 节中。                               |
+   | 位置项      | 位于第 8.7.1.1 节中。                               |
    +-------------+-----------------------------------------------------+
 
                                   表格 10
@@ -1715,46 +1715,68 @@ ISSN: 2070-1721                                            December 2024
    INDEX 01 even if there is an INDEX 00.  For CD-DA, the track offset
    MUST be evenly divisible by 588 samples (588 samples = 44100 samples/
    s * 1/75 s).
+   这里的音轨偏移值与 CD-DA 中的不同，这里是指 INDEX 01 的音轨在
+   目录（TOC）中的偏移值（就算有 INDEX 00 也是如此）。对于 CD-DA 而言，
+   音轨偏移值「必须」（MUST）能被 588 整除
+   （588 采样数 = 44100 采样数/秒 * 1/75 秒）。
 
    A track number of 0 is not allowed because the CD-DA specification
    reserves this for the lead-in.  For CD-DA, the number MUST be 1-99 or
    170 for the lead-out; for non-CD-DA, the track number MUST be 255 for
    the lead-out.  It is recommended to start with track 1 and increase
    sequentially.  Track numbers MUST be unique within a cuesheet.
+   CD-DA 中的音轨编号不允许为 0，因为在 CD-DA 规范中 0 是预留给 lead-in
+   音轨的。同时，lead-out 音轨的编号「必须」（MUST）是 1 到 99 或 170。
+   对于非 CD-DA 格式，lead-out 的编号「必须」（MUST）是 255。通常推荐以
+   1 作为音轨的起始编号，并依次增加。Cue 表中的音轨编号「必须」（MUST）
+   唯一。
 
    The track ISRC (International Standard Recording Code) is a 12-digit
    alphanumeric code; see [ISRC-handbook].  A value of 12 ASCII 0x00
    characters MAY be used to denote the absence of an ISRC.
+   音轨的 ISRC（国际标准音像制品编码）是一段 12 个字母和数字表示的编码；
+   参见 [ISRC-handbook]。「可以」（MAY）使用 12 个 0x00 ASCII 字符表示
+   此音轨的 ISRC 是缺失的。
 
    There MUST be at least one index point in every track in a cuesheet
    except for the lead-out track, which MUST have zero.  For CD-DA, the
    number of index points MUST NOT be more than 100.
+   除了 lead-out 音轨的索引位置数量「必须」（MUST）是 0 之外，Cue 表中
+   所有其他的音轨中「必须」（MUST）包含至少 1 个索引位置。对于 CD-DA
+   而言，索引位置的数量「不得」（MUST）超过 100 个。
 
-8.7.1.1.  Cuesheet Track Index Point
+8.7.1.1.  Cue 表的音轨中的索引位置
 
               +========+====================================+
-              | Data   | Description                        |
+              | 数据   | 描述信息                           |
               +========+====================================+
-              | u(64)  | Offset in samples, relative to the |
-              |        | track offset, of the index point.  |
+              | u(64)  | 索引位置相对于所在音轨的偏移值，   |
+              |        | 单位是采样信号数量。               |
               +--------+------------------------------------+
-              | u(8)   | The track index point number.      |
+              | u(8)   | 音轨索引位置的编号。               |
               +--------+------------------------------------+
-              | u(3*8) | Reserved.  All bits MUST be set to |
-              |        | zero.                              |
+              | u(3*8) | 保留。所有比特位「必须」（MUST）   |
+              |        | 为 0。                             |
               +--------+------------------------------------+
 
-                                  Table 11
+                                  表格 11
 
    For CD-DA, the track index point offset MUST be evenly divisible by
    588 samples (588 samples = 44100 samples/s * 1/75 s).  Note that the
    offset is from the beginning of the track, not the beginning of the
    audio data.
+   对于 CD-DA，音轨索引位置的偏移值「必须」（MUST）能被 588 整除
+   （588 个采样信号 = 44100 采样信号/秒 * 1/75 秒）。其中偏移值是相对于
+   此音轨的起始位置的，而非相对于整个音频数据。
 
    For CD-DA, a track index point number of 0 corresponds to the track
    pre-gap.  The first index point in a track MUST have a number of 0 or
    1, and subsequently, index point numbers MUST increase by 1.  Index
    point numbers MUST be unique within a track.
+   对于 CD-DA，音轨索引位置的编号如果是 0，则表示音轨的前间隔。而第一个
+   索引位置的编号「必须」（MUST）是 0 或者 1，并且后续的编号
+   「必须」（MUST）按顺序依次加 1。音轨中的索引位置编号「必须」（MUST）
+   唯一。
 
 8.8.  图像
 
