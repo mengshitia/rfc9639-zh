@@ -113,7 +113,7 @@ ISSN: 2070-1721                                            December 2024
        9.2.3.  Constant Subframe
        9.2.4.  Verbatim 子帧
        9.2.5.  采用固定预测模型的子帧
-       9.2.6.  Linear Predictor Subframe
+       9.2.6.  采用线性预测模型的子帧
        9.2.7.  Coded Residual
      9.3.  Frame Footer
    10. Container Mappings
@@ -574,8 +574,8 @@ ISSN: 2070-1721                                            December 2024
        different from using a zero-order fixed predictor.
        *Verbatim*：不对采样信号进行任何建模，直接保存。这种方式适用于
        含有极少相关性的输入信号。由于原始信号实际上不会经历残差编码的
-       步骤（信号会被添加到“Verbatim”流中），这种方式与固定使用序号为 0
-       的预测模型有所不同。
+       步骤（信号会被添加到“Verbatim”流中），这种方式与固定使用 0 阶的
+       固定预测模型有所不同。
 
    2.  *Constant*. A single sample value is stored.  This method is used
        whenever a signal is pure DC ("digital silence"), i.e., a
@@ -2208,7 +2208,7 @@ ISSN: 2070-1721                                            December 2024
    defined in [RFC3629] but extended to a maximum of 36 bits unencoded
    or 7 bytes encoded.
    编码后的序号以类似 UTF-8 的可变长度编码形式存储（参见 RFC 3629），
-   但可以扩展到最大 36 位长的未编码或 7 字节长的编码格式。
+   但所能表示的数值范围最大可以达到编码前 36 位或编码后 7 字节序列。
 
    When a frame number is encoded, the value MUST NOT be larger than
    what fits a value of 31 bits unencoded or 6 bytes encoded.  Please
@@ -2220,15 +2220,17 @@ ISSN: 2070-1721                                            December 2024
    of using a character number, use a frame or sample number.  In
    addition, use the extended table below instead of the table in
    Section 3 of [RFC3629].
-   当编码的是数据帧序号，其最大值「不得」（MUST NOT）超过 31 位未编码或
-   6 字节编码格式所能表示的最大值。请注意，绝大多数通用的 UTF-8 编码器和
-   解码器都遵循 RFC 3629，因此它们无法处理这些扩展编码。此外，UTF-8 编码
-   被指定用于编码字符，但 FLAC 用其编码数字。请按照 RFC 3629 第 3 节中的
-   步骤进行编码和解码操作，但要注意这里用到的是数据帧或采样信号的编号，
-   不是字符；此外，应参照下面的表格，不要参照 RFC 3629 第 3 节里的表格。
+   当编码数据帧序号时，其最大值「不得」（MUST NOT）超过编码前 31 位或
+   编码后 6 字节序列所能表示的最大值
+   （译注：31 位数字最大值：0x7fffffff，即 2147483647）。
+   需要注意的是，绝大多数通用的 UTF-8 编码器和解码器都遵循 RFC 3629，
+   因此它们无法处理这里的编码。此外，UTF-8 编码被指定用于编码字符，
+   但 FLAC 用其编码数字。因此可以按照 RFC 3629 第 3 节中的步骤进行编码和
+   解码操作，但需要注意这里用到的是数据帧或采样信号的编号，不是字符；
+   此外，实际操作时应参照下面的表格，不要参照 RFC 3629 第 3 节里的表格。
 
    +============================+=====================================+
-   | 数字范围（十六进制）       | 8 位一组的序列（二进制）            |
+   | 编号的数值范围（十六进制） | 编码后的 8 位一组的序列（二进制）   |
    +============================+=====================================+
    | 0000 0000 0000 -           | 0xxxxxxx                            |
    | 0000 0000 007F             |                                     |
@@ -2461,7 +2463,7 @@ ISSN: 2070-1721                                            December 2024
    the subframe uses the lowest number of wasted bits; otherwise, non-
    zero bits would be discarded, and the process would not be lossless.
 
-9.2.3.  Constant Subframe
+9.2.3.  Constant 子帧
 
    In a constant subframe, only a single sample is stored.  This sample
    is stored as an integer number coded big-endian, signed two's
@@ -2474,8 +2476,8 @@ ISSN: 2070-1721                                            December 2024
    increased by 1 bit.
    Constant 子数据帧中只存有一个采样信号，该采样以大端序有符号整数的补码
    形式存储。存储该值所需要的比特位由此子数据帧的位深度决定。而子数据帧
-   的位深度等于数据帧头部中编码的位深度（见第 9.1.4 节）减去子数据帧头部中
-   编码的无用比特位数量（见第 9.2.2 节）。对于侧编码的子数据帧，位深度
+   的位深度等于数据帧头部中编码的位深度（见第 9.1.4 节）减去子数据帧头部
+   中编码的无用比特位数量（见第 9.2.2 节）。对于侧编码的子数据帧，位深度
    还需要增加 1 位。
 
 9.2.4.  Verbatim 子帧
@@ -2597,13 +2599,16 @@ ISSN: 2070-1721                                            December 2024
    and the sample before it.  The higher-order fixed predictors can be
    understood as polynomials fitted to the previous samples.
 
-9.2.6.  Linear Predictor Subframe
+9.2.6.  采用线性预测模型的子帧
 
    Whereas fixed predictors are well suited for simple signals, using a
    (non-fixed) linear predictor on more complex signals can improve
    compression by making the residual samples even smaller.  There is a
    certain trade-off, however, as storing the predictor coefficients
    takes up space as well.
+   正如固定预测模型非常适合预测简单信号，（非固定的）线性预测模型应用于
+   复杂信号上能让残余采样更小，进而提升压缩效果。然而这也有弊端，存储
+   预测模型参数同样需要空间。
 
    In the FLAC format, a predictor is defined by up to 32 predictor
    coefficients and a shift.  To form a prediction, each coefficient is
@@ -2615,6 +2620,8 @@ ISSN: 2070-1721                                            December 2024
    added for each sample.  This means that decoding MUST be a sequential
    process within a subframe, as enough decoded samples are needed to
    calculate the prediction for each sample.
+   FLAC 格式中，预测模型由 32 个参数和 1 个移位位数所定义。预测时，每个
+   模型参数与其对应的过往采样相乘，
 
    The table below defines how a linear predictor subframe appears in
    the bitstream.
@@ -2785,7 +2792,7 @@ ISSN: 2070-1721                                            December 2024
    within a 32-bit signed integer, and most library routines calculating
    an absolute value have undefined behavior for processing that value.
 
-9.3.  Frame Footer
+9.3.  帧尾部
 
    Following the last subframe is the frame footer.  If the last
    subframe is not byte aligned (i.e., the number of bits required to
@@ -2794,6 +2801,11 @@ ISSN: 2070-1721                                            December 2024
    16-bit CRC, initialized with 0, with the polynomial x^16 + x^15 + x^2
    + x^0.  This CRC covers the whole frame, excluding the 16-bit CRC but
    including the sync code.
+   最后一个子帧的后面是数据帧尾部。如果最后一个子数据帧没有对齐字节边界
+   （即比特位数量不能被 8 整除），需要填充 0 比特位以对齐字节边界。
+   数据帧尾部是一段 16 位长的循环冗余校验码（CRC），初始值为 0，
+   其多项式形式为：x^16 + x^15 + x^2 + x^0。此 CRC 覆盖除了自身以外的
+   整个数据帧，包括头部的同步码。
 
 10.  Container Mappings
 
