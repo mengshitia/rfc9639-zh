@@ -110,12 +110,12 @@ ISSN: 2070-1721                                            December 2024
      9.2.  子数据帧
        9.2.1.  子数据帧头部
        9.2.2.  采样中的无用比特位
-       9.2.3.  Constant Subframe
+       9.2.3.  Constant 子帧
        9.2.4.  Verbatim 子帧
        9.2.5.  采用固定预测模型的子帧
        9.2.6.  采用线性预测模型的子帧
-       9.2.7.  Coded Residual
-     9.3.  Frame Footer
+       9.2.7.  编码后的残余采样
+     9.3.  帧尾部
    10. Container Mappings
      10.1.  Ogg Mapping
      10.2.  Matroska Mapping
@@ -659,6 +659,10 @@ ISSN: 2070-1721                                            December 2024
    that a few "outlier" residual samples are much larger than any of the
    original samples.  Sometimes these outliers even exceed the range
    that the bit depth of the original audio offers.
+   如果子帧采用了预测模型尝试对音频信号进行近似取值，就需要存储残余值
+   对这个近似值进行“纠正”，以还原原始信号。如果预测模型非常有效，残余的
+   采样值平均而言将小于原始信号；因此少量的“离群值”相对而言将大得多。
+   这些离群值偶尔还会超出原始音频的采样深度。
 
    To efficiently code such a stream of relatively small numbers with an
    occasional outlier, Rice coding (a subset of Golomb coding) is used.
@@ -2035,9 +2039,9 @@ ISSN: 2070-1721                                            December 2024
      +-----------------+---------------------------------------------+
      | 0b0010 - 0b0101 | 144 * (2^v)，例如 576、1152、2304 或 4608   |
      +-----------------+---------------------------------------------+
-     | 0b0110          | 罕见数据块大小减去 1，以 8 位数字存储       |
+     | 0b0110          | 块大小 - 1，存储在编码序号后，8 位          |
      +-----------------+---------------------------------------------+
-     | 0b0111          | 罕见数据块大小减去 1，以 16 位数字存储      |
+     | 0b0111          | 块大小 - 1，存储在编码序号后，16 位         |
      +-----------------+---------------------------------------------+
      | 0b1000 - 0b1111 | 2^v，例如 256、512、1024、2048、4096、      |
      |                 | 8192、16384 或 32768                        |
@@ -2086,11 +2090,11 @@ ISSN: 2070-1721                                            December 2024
    +--------+----------------------------------------------------------+
    | 0b1011 | 96 kHz                                                   |
    +--------+----------------------------------------------------------+
-   | 0b1100 | 罕见采样率，单位 kHz，以 8 位数字存储                    |
+   | 0b1100 | 罕见采样率，单位 kHz，存储在编码序号后，8 位             |
    +--------+----------------------------------------------------------+
-   | 0b1101 | 罕见采样率，单位 Hz，以 16 位数字存储                    |
+   | 0b1101 | 罕见采样率，单位 Hz，存储在编码序号后，16 位             |
    +--------+----------------------------------------------------------+
-   | 0b1110 | 罕见采样率，单位十分之一 Hz，以 16 位数字存储            |
+   | 0b1110 | 罕见采样率，单位 0.1 Hz，存储在编码序号后，16 位         |
    +--------+----------------------------------------------------------+
    | 0b1111 | 禁止使用                                                 |
    +--------+----------------------------------------------------------+
@@ -2347,8 +2351,8 @@ ISSN: 2070-1721                                            December 2024
    number of audio channels.  Note that subframes contain a bitstream
    that does not necessarily have to be a whole number of bytes, so only
    the first subframe starts at a byte boundary.
-   数据帧头部后面是数量等于音频通道数的子数据帧。注意子数据帧由可能包含
-   一个非整数字节的比特流，因此只有第一个子数据帧是对齐字节边界的。
+   数据帧头部后面是数量等于音频通道数的子数据帧。注意子数据帧可能包含
+   非整数字节的比特流，因此只有第一个子数据帧是对齐字节边界的。
 
 9.2.1.  子数据帧头部
 
@@ -2462,6 +2466,15 @@ ISSN: 2070-1721                                            December 2024
    first part has 2 wasted bits and the second part has 4 wasted bits),
    the subframe uses the lowest number of wasted bits; otherwise, non-
    zero bits would be discarded, and the process would not be lossless.
+   除了固定数量的无用比特位，还有可变数量的无用比特位的音频文件。
+   有些 DVD 音乐光盘中，部分采样块的最低有效位被选择性地设置为 0，
+   以略微提高其原本无损的 Meridian Lossless Packing 编解码器的压缩率；
+   参见 [MLP]。也有像 lossyWAV（参见 [lossyWAV]）这样的音频处理器，
+   将一些采样块的最低有效位设置为 0 以有损的方式提高压缩率。因此，
+   无用比特位的数量 k 在各个采样或子帧中「可能」（MAY）不同。假如
+   无用比特位在子帧中发生了变化（例如前一部分是 2 位，而后一部分
+   是 4 位），该子帧应使用最小的无用比特位；否则，非 0 比特将被丢弃，
+   而处理过程就不再是无损的。
 
 9.2.3.  Constant 子帧
 
@@ -2585,6 +2598,10 @@ ISSN: 2070-1721                                            December 2024
    that decoding is necessarily a sequential process within a subframe,
    as for each sample, enough fully decoded previous samples are needed
    to calculate the prediction.
+   使用固定预测模型编码信号时，每个采样需要减去其对应的预测值，然后交给
+   残余编码器进行处理。解码时，先将解码残余编码，然后加上每个采样对应的
+   预测值。这意味着解码过程在单个子帧中必须是有序的，因为对于每个
+   采样而言，只有足够的前置采样才能够进行预测。
 
    For fixed predictor order 0, the prediction is always 0; thus, each
    residual sample is equal to its corresponding input or decoded
@@ -2592,12 +2609,19 @@ ISSN: 2070-1721                                            December 2024
    verbatim subframe is that a verbatim subframe stores all samples
    unencoded while a fixed predictor with order 0 has all its samples
    processed by the residual coder.
+   对于阶数为 0 的固定预测模型，预测结果始终是 0；因此残余采样总是与
+   其对应的输入或解码后的采样相同。阶数为 0 的固定预测模型与 verbatim
+   子帧的区别在于，verbatim 子帧存储所有未经编码的采样，
+   而 0 阶固定预测模型存储的采样都是经过了残余编码器处理后的。
 
    The first-order fixed predictor is comparable to how differential
    pulse-code modulation (DPCM) encoding works, as the resulting
    residual sample is the difference between the corresponding sample
    and the sample before it.  The higher-order fixed predictors can be
    understood as polynomials fitted to the previous samples.
+   1 阶固定预测模型与差值脉冲编码调制（DPCM）编码过程相似，计算得到的
+   残余采样正是对应采样与其前一个采样的差值。更高阶的固定预测模型可以
+   被理解为应用在前置采样上的多项式。
 
 9.2.6.  采用线性预测模型的子帧
 
@@ -2608,7 +2632,7 @@ ISSN: 2070-1721                                            December 2024
    takes up space as well.
    正如固定预测模型非常适合预测简单信号，（非固定的）线性预测模型应用于
    复杂信号上能让残余采样更小，进而提升压缩效果。然而这也有弊端，存储
-   预测模型参数同样需要空间。
+   预测模型的系数同样需要空间。
 
    In the FLAC format, a predictor is defined by up to 32 predictor
    coefficients and a shift.  To form a prediction, each coefficient is
@@ -2621,30 +2645,35 @@ ISSN: 2070-1721                                            December 2024
    process within a subframe, as enough decoded samples are needed to
    calculate the prediction for each sample.
    FLAC 格式中，预测模型由 32 个参数和 1 个移位位数所定义。预测时，每个
-   模型参数与其对应的过往采样相乘，
+   模型参数与其对应的前置采样相乘，随后求和，再进行移位。编码时，每个
+   采样减去其对应的预测值，然后交给残余编码器处理。解码时，先解码
+   残余编码，然后加上预测值，得到每个采样的原始值。这意味着解码过程在
+   子帧内「必须」（MUST）是有序的，因为需要足够多解码后的前置采样来进行
+   预测。
 
    The table below defines how a linear predictor subframe appears in
    the bitstream.
+   下面的表格定义了采用线性预测模型的子帧结构。
 
           +==========+==========================================+
-          | Data     | Description                              |
+          | 数据     | 描述信息                                 |
           +==========+==========================================+
-          | s(n)     | Unencoded warm-up samples (n =           |
-          |          | subframe's bits per sample * LPC order). |
+          | s(n)     | 未编码的“启动”采样（n = 子帧的位深度 *   |
+          |          | 线性预测模型的阶数）。                   |
           +----------+------------------------------------------+
-          | u(4)     | (Predictor coefficient precision in      |
-          |          | bits)-1 (Note: 0b1111 is forbidden).     |
+          | u(4)     | 预测模型系数精度位数 - 1。               |
+          |          | （注意：禁止使用 0b1111）                |
           +----------+------------------------------------------+
-          | s(5)     | Prediction right shift needed in bits.   |
+          | s(5)     | 预测结果需要右移的位数。                 |
           +----------+------------------------------------------+
-          | s(n)     | Predictor coefficients (n = predictor    |
-          |          | coefficient precision * LPC order).      |
+          | s(n)     | 预测模型系数（n = 预测模型系数精度 *     |
+          |          | 线性预测模型的阶数）。                   |
           +----------+------------------------------------------+
-          | Coded    | Coded residual as defined in             |
-          | residual | Section 9.2.7.                           |
+          | 编码后的 | 定义于第 9.2.7 节中的编码后的残余值。    |
+          | 残余值   |                                          |
           +----------+------------------------------------------+
 
-                                  Table 22
+                                  表格 22
 
    See Section 9.2.3 on how the warm-up samples are stored unencoded.
    The predictor coefficients are stored as an integer number coded big-
@@ -2653,6 +2682,10 @@ ISSN: 2070-1721                                            December 2024
    While the prediction right shift is signed two's complement, this
    number MUST NOT be negative; see Appendix B.4 for an explanation why
    this is.
+   如何存储未编码的“启动”采样请参见第 9.2.3 节。预测模型系数以大端序整数
+   二进制补码形式存储，预测模型系数的精度决定了需要多少比特位以存储
+   这些系数。预测结果右移位数虽然以有符号二进制补码形式表示，但该值
+   「不得」（MUST NOT）为负；参见附录 B.4 了解详情。
 
    Please note that the order in which the predictor coefficients appear
    in the bitstream corresponds to which *past* sample they belong to.
@@ -2661,23 +2694,27 @@ ISSN: 2070-1721                                            December 2024
    coefficient has to be multiplied with the sample directly before the
    sample that is being predicted, the second predictor coefficient has
    to be multiplied with the sample before that, etc.
+   注意预测模型系数出现的顺序与采样的顺序是相反的，即第一个系数对应
+   待预测信号前置的最后一个采样，第二个系数对应前置的倒数第二个采样，
+   依此类推。
 
-9.2.7.  Coded Residual
+9.2.7.  编码后的残余采样
 
    The first two bits in a coded residual indicate which coding method
    is used.  See the table below.
+   编码后的残余信号中的前两位比特位表示的是编码方式，参见下表。
 
        +=============+=============================================+
-       | Value       | Description                                 |
+       | 数值        | 描述信息                                    |
        +=============+=============================================+
-       | 0b00        | Partitioned Rice code with 4-bit parameters |
+       | 0b00        | 分区 Rice 编码，参数长度 4 位表示           |
        +-------------+---------------------------------------------+
-       | 0b01        | Partitioned Rice code with 5-bit parameters |
+       | 0b01        | 分区 Rice 编码，参数长度 5 位表示           |
        +-------------+---------------------------------------------+
-       | 0b10 - 0b11 | Reserved                                    |
+       | 0b10 - 0b11 | 保留                                        |
        +-------------+---------------------------------------------+
 
-                                  Table 23
+                                  表格 23
 
    Both defined coding methods work the same way but differ in the
    number of bits used for Rice parameters.  The 4 bits that directly
@@ -2686,6 +2723,11 @@ ISSN: 2070-1721                                            December 2024
    2^(partition order) partitions.  For example, if the 4 bits are
    0b1000, the partition order is 8, and the residual is split up into
    2^8 = 256 partitions.
+   表格中的两种编码方式除了 Rice 参数的长度不同以外，其效果都是相同的。
+   其中 4 位长的参数以无符号数形式直接跟在编码方式后面，形成了分区阶数，
+   剩余的残余编码组成了 2 的分区阶数次个分区。举例来说，假设有 4 位长的
+   参数为 0b1000，那么分区阶数就是 8，残余信号就会被分成 2^8 即 256 个
+   分区。
 
    Each partition contains a certain number of residual samples.  The
    number of residual samples in the first partition is equal to (block
@@ -2693,6 +2735,10 @@ ISSN: 2070-1721                                            December 2024
    divided by the number of partitions minus the predictor order.  In
    all other partitions, the number of residual samples is equal to
    (block size >> partition order).
+   每一个分区都包含了确定数量的残余采样。第一个分区中的残余采样数量由
+   块大小右移分区阶数位、再减去预测模型阶数得到，即块大小除以分区数量、
+   再减去预测模型阶数。而在其他的分区中，残余采样数量等于块大小右移
+   分区阶数位，即块大小除以分区数量。
 
    The partition order MUST be such that the block size is evenly
    divisible by the number of partitions.  This means, for example, that
@@ -2701,6 +2747,11 @@ ISSN: 2070-1721                                            December 2024
    order) is larger than the predictor order.  This means, for example,
    that with a block size of 4096 and a predictor order of 4, the
    partition order cannot be larger than 9.
+   分区阶数「必须」（MUST）保证块大小能够被分区数平均分。这意味着对于
+   数量为奇数的块大小，分区阶数只能是 0。分区阶数还「必须」保证块大小
+   右移分区阶数位后的结果大于预测模型阶数；例如块大小为 4096 个采样、
+   预测模型阶数为 4，那么分区阶数不能超过 9。
+   （译注：按上一段中的描述，就是必须保证每个分区里都有残余采样。）
 
    Each partition starts with a parameter.  If the coded residual of a
    subframe is one with 4-bit Rice parameters (see Table 23), the first
@@ -2711,8 +2762,12 @@ ISSN: 2070-1721                                            December 2024
    parameters, the first 5 bits of each partition indicate an escape
    code if they are 0b11111; otherwise, they contain the Rice parameter
    as an unsigned number as well.
+   每个分区都以参数开始。假设某个子帧的残余编码方式是 4 位 Rice 参数
+   （参见表格 23），那么每个分区的前 4 位比特位要么是 Rice 参数，要么是
+   一段转义码。0b1111 表示转义码，而其他的都以无符号数表示 Rice 参数。
+   5 位 Rice 参数的情况与 4 位类似，区别在于 0b11111 表示转义。
 
-9.2.7.1.  Escaped Partition
+9.2.7.1.  转义的分区
 
    If an escape code was used, the partition does not contain a
    variable-length Rice-coded residual; rather, it contains a fixed-
@@ -2722,14 +2777,22 @@ ISSN: 2070-1721                                            December 2024
    stored signed two's complement.  For example, when a partition is
    escaped and each residual sample is stored with 3 bits, the number -1
    is represented as 0b111.
+   以转义码开始的分区不包含可变长度 Rice 编码的残余采样；相反其包含的是
+   固定长度的未编码残余采样。跟在转义码后的是 5 位长度、以无符号数表示的
+   各个残余采样所占的位数。残余采样自身以有符号数的二进制补码形式存储。
+   假设某个转义的分区中，每个残余采样以 3 位长度存储，那么数值 -1 应
+   存储为：0b111（译注：第一位是符号位）。
 
    Note that it is possible that the number of bits with which each
    sample is stored is 0, which means that all residual samples in that
    partition have a value of 0 and that no bits are used to store the
    samples.  In that case, the partition contains nothing except the
    escape code and 0b00000.
+   值得注意的是，每个采样的位数可以是 0，这意味着所有该分区的残余采样的
+   值全部为 0，因此不需要任何比特位来存储这些采样；这种情况下的分区只
+   包含转义码和 0b00000。
 
-9.2.7.2.  Rice Code
+9.2.7.2.  Rice 编码
 
    If a Rice parameter was provided for a certain partition, that
    partition contains a Rice-coded residual.  The residual samples,
@@ -2739,6 +2802,11 @@ ISSN: 2070-1721                                            December 2024
    multiplied by -2 and with 1 subtracted.  This representation of
    signed numbers is also known as zigzag encoding.  The zigzag-encoded
    residual is called the folded residual.
+   以 Rice 参数开始的分区包含了 Rice 编码的残余采样。不同于以有符号数
+   表示的残余采样，Rice 编码使用的是无符号数；对于正数，表示的值是
+   实际值的两倍，对于负数，表示的值是实际值乘以 -2 然后减去 1。这种用于
+   表示有符号数的方法也被称为“zigzag 编码方式”，zigzag 编码后的残余采样
+   被称为“折叠后的残余采样（folded residual）”。
 
    Each folded residual sample is then split into two parts, a most-
    significant part and a least-significant part.  The Rice parameter at
@@ -2746,6 +2814,10 @@ ISSN: 2070-1721                                            December 2024
    the number of bits in the least-significant part.  Each residual
    sample is then stored by coding the most-significant part as unary,
    followed by the least-significant part as binary.
+   每个折叠后的残余采样又接着被分成两部分，称为“最高有效位部分”和“最低
+   有效位部分”。每个分区开始位置的 Rice 参数决定了如何分块：它表示最低
+   有效位部分的位数。被分成两部分的残余采样就以一进制形式表示的最高
+   有效位部分和二进制形式表示的最低有效位部分存储。
 
    For example, take a partition with Rice parameter 3 containing a
    folded residual sample with 38 as its value, which is 0b100110 in
@@ -2754,6 +2826,11 @@ ISSN: 2070-1721                                            December 2024
    is stored as is.  The Rice code word is thus 0b00001110.  The Rice
    code words for all residual samples in a partition are stored
    consecutively.
+   举个例子，某个 Rice 参数是 3 的分区中，有一个数值为 38 的折叠后的
+   残余采样（二进制形式为：0b100110）。最高有效位部分是 0b100（4），以
+   一进制形式 0b00001 存储；最低有效位部分 0b110（6）按原样存储；那么
+   Rice 编码就是 0b00001110。一个分区内的所有残余采样的 Rice 编码都是
+   连续存储的。
 
    To decode a Rice code word, zero bits must be counted until
    encountering a one bit, after which a number of bits given by the
@@ -2766,10 +2843,16 @@ ISSN: 2070-1721                                            December 2024
    and then has all bits flipped (1 added to and divided by -2) to get
    the (unfolded) residual value, subject to negative numbers being
    signed two's complement on the decoding machine.
+   解码 Rice 编码时，必须先从头开始数到第一个 1，Rice 参数表示的位数也是
+   必要的。读取到的 0 的位数先左移 Rice 参数位数，然后与读取到的值进行
+   按位或运算得到折叠后的残余采样值。偶数直接右移 1 位（即除以 2）得到
+   原始的残余值；奇数首先需要右移 1 位，然后翻转所有比特位（即加上 1，
+   然后除以 2）得到原始的残余值，也就是以二进制补码形式表示的负数。
 
    Appendix D shows decoding of a complete coded residual.
+   附录 D 中包含了解码一段完整的残余编码的示例。
 
-9.2.7.3.  Residual Sample Value Limit
+9.2.7.3.  残余采样的数值限制
 
    All residual sample values MUST be representable in the range offered
    by a 32-bit integer, signed one's complement.  Equivalently, all
@@ -2783,6 +2866,14 @@ ISSN: 2070-1721                                            December 2024
    verbatim subframe.  Appendix A explains in which circumstances
    residual samples are already implicitly representable in said range;
    thus, an additional check is not needed.
+   所有残余采样的数值「必须」（MUST）能由一个 32 位的整数（有符号的
+   补码）所表示。同理所有残余采样的数值必须落在 32 位有符号的二进制整数
+   的范围内，但不包括最小值。这意味着残余采样的绝对值
+   「不得」（MUST NOT）大于或等于 2 的 31 次。FLAC 编码器
+   「必须」（MUST）确保这一点。假设对于某个子帧，编码器无法找出一个能够
+   让所有残余采样值均落在这个限制范围内的预测模型，该编码器的默认行为
+   应该是将采样保存为一个 verbatim 子帧。附录 A 中解释了何种情况下的
+   残余采样值已经隐含地位于限制范围内，且不需要额外的校验。
 
    The reason for this limit is to ensure that decoders can use 32-bit
    integers when processing residuals, simplifying decoding.  The reason
@@ -2791,6 +2882,10 @@ ISSN: 2070-1721                                            December 2024
    implement specific handling of that value, as it cannot be negated
    within a 32-bit signed integer, and most library routines calculating
    an absolute value have undefined behavior for processing that value.
+   设置此限制的原因是为了确保解码器能用 32 位整数处理残余采样，简化解码
+   过程。排除了 32 位有符号数的二进制补码形式所能表示的最小值的原因是
+   避免解码器针对该值进行额外处理，该值的绝对值无法被 32 位有符号整数
+   所表示，并且大多数库在处理该值时的行为是不确定的。
 
 9.3.  帧尾部
 
@@ -2821,42 +2916,50 @@ ISSN: 2070-1721                                            December 2024
    encapsulate FLAC frames as they are, which means some data will be
    duplicated and potentially deviating between the FLAC frames and the
    encapsulating container.
+   FLAC 格式已经提供了一个拥有大多数基本功能和特性的正常容器，因此可以
+   脱离其他容器独立使用。然而这些由容器提供的基本功能非常有限，假如需要
+   高级功能（例如组合进视频），就需要将其包装进一个更合适的容器中。这样
+   会带来一个问题：这些容器的功能和特点意味着 FLAC 格式中编码的数据
+   （块大小和采样率等）会与容器中的其他数据（校验和和时间编码等）混合。
+   当决定将 FLAC 帧按原样包装进容器中时，某些数据有可能会重复，或与
+   原文件和容器中的数据出现偏差。
 
    As FLAC frames are completely independent of each other, container
    format features handling dependencies do not need to be used.  For
    example, all FLAC frames embedded in Matroska are marked as keyframes
    when they are stored in a SimpleBlock, and tracks in an MP4 file
    containing only FLAC frames do not need a sync sample box.
+   由于 FLAC 帧之间完全相互独立，因此不必使用容器提供的独立性处理功能。
+   举例来说，存储到 SimpleBlock 中并嵌入到 Matroska 中的所有 FLAC 帧
+   均被标记为关键帧，并且在只包含 FLAC 帧的 MP4 文件中不需要 sync sample box.
 
 10.1.  Ogg Mapping
 
    The Ogg container format is defined in [RFC3533].  The first packet
    of a logical bitstream carrying FLAC data is structured according to
    the following table.
+   [RFC3533] 定义了 Ogg 容器的格式。携带 FLAC 数据的逻辑比特流中的
+   第一个包的结构如下表所示。
 
    +=========+=========================================================+
-   | Data    | Description                                             |
+   | 数据    | 描述信息                                                |
    +=========+=========================================================+
-   | 5       | Bytes 0x7F 0x46 0x4C 0x41 0x43 (as also defined by      |
-   | bytes   | [RFC5334]).                                             |
+   | 5 字节  | 分别是 0x7F 0x46 0x4C 0x41 0x43；                       |
+   |         | 参见 [RFC5334]。                                        |
    +---------+---------------------------------------------------------+
-   | 2       | Version number of the FLAC-in-Ogg mapping.  These bytes |
-   | bytes   | are 0x01 0x00, meaning version 1.0 of the mapping.      |
+   | 2 字节  | FLAC-in-Ogg mapping 的版本号。                          |
+   |         | 这些字节是：0x01 0x00，意思是版本 1.0。                 |
    +---------+---------------------------------------------------------+
-   | 2       | Number of header packets (excluding the first header    |
-   | bytes   | packet) as an unsigned number coded big-endian.         |
+   | 2 字节  | 头中包的数量（不包括第一个包），以大端序无符号数表示。  |
    +---------+---------------------------------------------------------+
-   | 4       | The fLaC signature.                                     |
-   | bytes   |                                                         |
+   | 4 字节  | “fLaC”标记                                              |
    +---------+---------------------------------------------------------+
-   | 4       | A metadata block header for the streaminfo metadata     |
-   | bytes   | block.                                                  |
+   | 4 字节  | Streaminfo 元数据块的头部。                             |
    +---------+---------------------------------------------------------+
-   | 34      | A streaminfo metadata block.                            |
-   | bytes   |                                                         |
+   | 34 字节 | Streaminfo 元数据块。                                   |
    +---------+---------------------------------------------------------+
 
-                                  Table 24
+                                  表格 24
 
    The number of header packets MAY be 0, which means the number of
    packets that follow is unknown.  This first packet MUST NOT share a
