@@ -2965,6 +2965,9 @@ ISSN: 2070-1721                                            December 2024
    packets that follow is unknown.  This first packet MUST NOT share a
    Ogg page with any other packets.  This means the first page of a
    logical stream of FLAC-in-Ogg is always 79 bytes.
+   头中包的数量「可以」（MAY）是 0，意味着包的数量是未知的。第一个包
+   「不得」（MUST NOT）与其他包共享一个 Ogg 页，即 FLAC-in-Ogg 逻辑流的
+   第一页总是 79 个字节。
 
    Following the first packet are one or more header packets, each of
    which contains a single metadata block.  The first of these packets
@@ -2972,11 +2975,17 @@ ISSN: 2070-1721                                            December 2024
    is contrary to unencapsulated FLAC streams, where the order of
    metadata blocks is not important except for the streaminfo metadata
    block and where a Vorbis comment metadata block is optional.
+   第一个包后是更多的头包，每个包都包含一个单一的元数据块。出于
+   历史原因，其中的第一个包「应该」（SHOULD）是 Vorbis 注释元数据块。
+   未被封装的 FLAC 流中没有这样的顺序限制，并且 Vorbis 注释是可选的。
 
    Following the header packets are audio packets.  Each audio packet
    contains a single FLAC frame.  The first audio packet MUST start on a
    new Ogg page, i.e., the last metadata block MUST finish its page
    before any audio packets are encapsulated.
+   头中的包之后是音频包，每个音频包都包含了一个单一的 FLAC 帧。第一个
+   音频包「必须」（MUST）于新的 Ogg 页开始，即最后一个元数据块「必须」
+   （MUST）位于任何音频包所在的页之前。
 
    The granule position of all pages containing header packets MUST be
    0.  For pages containing audio packets, the granule position is the
@@ -2986,6 +2995,10 @@ ISSN: 2070-1721                                            December 2024
    of a large packet that continues on the next page), then the granule
    position is set to the maximum value possible, i.e., 0xFF 0xFF 0xFF
    0xFF 0xFF 0xFF 0xFF 0xFF.
+   所有包含了头包的页的颗粒位置「必须」（MUST）是 0。包含音频包的页的
+   颗粒位置是帧里最后一个完整的包里的最后一个采样的编号。如果包太大，
+   超过了一个页面，那么该页面的颗粒位置将设置为一个尽可能大的值，例如：
+   0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF。
 
    The granule position of the first audio data page with a completed
    packet MAY be larger than the number of samples contained in packets
@@ -2995,6 +3008,8 @@ ISSN: 2070-1721                                            December 2024
    example, a server to cast a live stream to several clients that
    joined at different moments without rewriting the granule position
    for each client.
+   第一页包含完整音频包数据的颗粒位置「可以」（MAY）大于该页完整的包所
+   包含的采样数量。
 
    If an audio stream is encoded where audio properties (sample rate,
    number of channels, or bit depth) change at some point in the stream,
@@ -3002,6 +3017,9 @@ ISSN: 2070-1721                                            December 2024
    stream and starting a new Ogg stream, concatenated to the previous
    one.  This is called chaining in Ogg. See the Ogg specification
    [RFC3533] for details.
+   假设编码的音频流的属性（采样率、通道数量或采样深度）在流中的某个位置
+   发生了变化，这时应该结束目前编码的 Ogg 流并创建一个新的 Ogg 流，并将
+   两部分相连。这被称为链式 Ogg。参见 [RFC3533] 有关 Ogg 的规范详情。
 
 10.2.  Matroska Mapping
 
@@ -3011,32 +3029,50 @@ ISSN: 2070-1721                                            December 2024
    the first audio frame (i.e., the fLaC ASCII signature and all
    metadata blocks) is stored as CodecPrivate data (EBML path
    \Segment\Tracks\TrackEntry\CodecPrivate).
+   [RFC9559] 定义了 Matroska 容器格式。分配到承载 FLAC 数据的信号源的
+   编解码器 ID（EBML 路径 \Segment\Tracks\TrackEntry\CodecID）是 ASCII
+   码形式的 A_FLAC。位于第一个音频帧之前的所有 FLAC 数据（“fLaC”标记和
+   所有的元数据块）都存储为 CodecPrivate 数据（EBML 路径
+   \Segment\Tracks\TrackEntry\CodecPrivate）。
 
    Each FLAC frame (including all of its subframes) is treated as a
    single frame in the context of Matroska.
+   在 Matroska 的上下文中，每个 FLAC 帧（包括其所有子帧）都被当作一个
+   单一的帧。
 
    If an audio stream is encoded where audio properties (sample rate,
    number of channels, or bit depth) change at some point in the stream,
    this should be dealt with by finishing the current Matroska segment
    and starting a new one with the new properties.
+   假设编码的音频流的属性（采样率、通道数量或采样深度）在流中的某个位置
+   发生了变化，这时应该结束目前编码的 Matroska 段（segment）并用变化后
+   的属性值创建一个新的段。
 
 10.3.  ISO Base Media File Format (MP4) Mapping
 
    The full encapsulation definition of FLAC audio in MP4 files was
    deemed too extensive to include in this document.  A definition
    document can be found at [FLAC-in-MP4-specification].
+   封装 FLAC 到 MP4 文件的定义对于本文来说过于冗长和多余。请参见
+   [FLAC-in-MP4-specification]。
 
-11.  Security Considerations
+11.  安全性的考量
 
    Like any other codec (such as [RFC6716]), FLAC should not be used
    with insecure ciphers or cipher modes that are vulnerable to known
    plaintext attacks.  Some of the header bits, as well as the padding,
    are easily predictable.
+   与其他编解码器类似（例如 [RFC6716]），FLAC 不应该与易遭受已知明文攻击
+   的不安全密码或密码模式一同使用，因为预测 FLAC 的部分头部比特位和填充
+   是非常容易的。
 
    Implementations of the FLAC codec need to take appropriate security
    considerations into account.  Section 2.1 of [RFC4732] provides
    general information on DoS attacks on end systems and describes some
    mitigation strategies.  Areas of concern specific to FLAC follow.
+   实现 FLAC 的编时应该认真考虑安全性问题。[RFC4732] 的第 2.1 节提供了
+   末端系统上的拒绝服务攻击（DoS）的大致信息和一些防范措施的描述。针对
+   FLAC 的一些关注点如下。
 
    It is extremely important for the decoder to be robust against
    malformed payloads.  Payloads that do not conform to this
@@ -3047,6 +3083,12 @@ ISSN: 2070-1721                                            December 2024
    with encoders are typically rarer.  Malformed audio streams MUST NOT
    cause the encoder to misbehave because this would allow an attacker
    to attack transcoding gateways.
+   解码器在应对恶意数据时的鲁棒性是极其重要的。处理不符合本规范的数据时
+   解码器「不应该」（MUST NOT）发生内存超限或使用过量的资源进行解码；
+   内存超限可能导致攻击者执行任意代码。虽然编码器遇到此类问题的可能性
+   很小，但这些考量对于编码器而言也是一样重要的；解码器在遇到恶意的
+   音频流时「不得」（MUST NOT）产生非预期的行为，否则会导致攻击者攻击
+   转码入口。
 
    As with all compression algorithms, both encoding and decoding can
    produce an output much larger than the input.  For decoding, the most
@@ -3061,6 +3103,14 @@ ISSN: 2070-1721                                            December 2024
    case, more than 4 gigabytes per sample).  Decoder and encoder
    implementors are advised to take precautions to prevent excessive
    resource utilization in such cases.
+   所有的压缩算法，无论是编码还是解码阶段都会产生远大于输入的输出结果。
+   对于解码而言，最有可能的极端例子是：包含 8 个块大小为 65535 采样的
+   子帧，编码了 32 位 PCM 的帧；该帧只有 49 字节，但是编码了超过 2 MB
+   大小的未编码 PCM 数据。对于编码而言，有可能会遇到比这还大的数据（尽管
+   这种情况下的数据通常是不正确的）；当编码器选择了不适用于待编码的残余
+   采样的 Rice 参数时，这种情况就发生了；这种情况下会产生很长的一元编码
+   符号（最极端的例子是每个采样中都超过 4 GB）。编解码器的实现者应该提前
+   考虑类似情况以防止过度的资源使用。
 
    Where metadata is handled, implementors are advised to either
    thoroughly test the handling of extreme cases or impose reasonable
@@ -3072,6 +3122,12 @@ ISSN: 2070-1721                                            December 2024
    despite there being no reasonable use of such contents.  One possible
    use case for very long character strings is in lyrics, which can be
    stored in Vorbis comment metadata block fields.
+   实现者在处理元数据时，建议对极端案例进行完整的测试或在本文的限制以外
+   添加合理的额外限制条件。举个例子，一个 Vorbis 注释元数据块可能包含
+   数百万个合法字段。通常情况下文件不会达到限制，但在潜在的受损文件中是
+   有可能的。与之类似，虽然在通常情况下不太可能，但图像元数据块的
+   媒体类型和描述也可能有数百万个字符。不过存储超大内容的实际应用案例
+   还是有的，比如存储在 Vorbis 注释元数据块字段中的很长很长的歌词。
 
    Various kinds of metadata blocks contain length fields or field
    counts.  While reading a block following these lengths or counts, a
@@ -3081,6 +3137,11 @@ ISSN: 2070-1721                                            December 2024
    memory must be allocated for that, parsers MUST first verify that a
    block is valid before allocating memory based on its contents, except
    when explicitly instructed to salvage data from a malformed file.
+   很多元数据块都有长度字段或是字段数量。解码器在按照这些长度或数量信息
+   读取一个元数据块时，「必须」（MUST）确保不能超过更高层级的长度或数量
+   （最重要的是元数据块自身的长度）。某些长度字段表示的是字符串长度，且
+   需要分配内存时，解析器在根据其内容分配内存之前「必须」（MUST）验证
+   该数据是合法的；除非明确接收到指令要求，需要从损坏的文件中抢救数据。
 
    Metadata blocks can also contain references, e.g., the picture
    metadata block can contain a URI.  When following a URI, the security
@@ -3101,6 +3162,10 @@ ISSN: 2070-1721                                            December 2024
    applications MUST guard against directory traversal attacks and guard
    against a violation of a same-origin policy if such a policy is being
    enforced.
+   元数据块中可能包含引用，例如图像元数据块中可能包含的是 URI。此时的
+   情形应采用 [RFC3986] 中的安全考量。应用程序「必须」（MUST）在得到用户
+   的明确许可之后才能通过远程协议获取该资源。使用外部 URI 有
+   被跟踪的风险，中间侦听者和服务提供者都有可能追踪请求。
 
    Seeking in a FLAC stream that is not in a container relies on the
    coded number in frame headers and optionally a seek table metadata
