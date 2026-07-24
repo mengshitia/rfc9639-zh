@@ -80,15 +80,15 @@ ISSN: 2070-1721                                            December 2024
      4.1.  数据分块
      4.2.  通道间去相关性
      4.3.  预测
-     4.4.  残差编码
+     4.4.  残余编码
    5.  格式原则
    6.  格式布局一览
    7.  Streamable 子集
    8.  文件级元数据
      8.1.  元数据块头部
-     8.2.  数据流信息
-     8.3.  填充比特位
-     8.4.  应用程序
+     8.2.  Streaminfo
+     8.3.  Padding
+     8.4.  Application
      8.5.  定位表
        8.5.1.  定位点
      8.6.  Vorbis 注释
@@ -120,25 +120,25 @@ ISSN: 2070-1721                                            December 2024
      10.1.  Ogg Mapping
      10.2.  Matroska Mapping
      10.3.  ISO Base Media File Format (MP4) Mapping
-   11. Security Considerations
+   11. 安全性考量
    12. IANA Considerations
-     12.1.  Media Type Registration
-     12.2.  FLAC Application Metadata Block IDs Registry
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
-   Appendix A.  Numerical Considerations
+     12.1.  媒体类型注册项
+     12.2.  FLAC Application Metadata Block IDs 注册表
+   13. 参考资料
+     13.1.  规范性参考资料
+     13.2.  信息性参考资料
+   附录 A.  数值考量
      A.1.  Determining the Necessary Data Type Size
      A.2.  Stereo Decorrelation
      A.3.  Prediction
      A.4.  Residual
      A.5.  Rice Coding
-   Appendix B.  Past Format Changes
+   附录 B.  Past Format Changes
      B.1.  Addition of Blocking Strategy Bit
      B.2.  Restriction of Encoded Residual Samples
      B.3.  Addition of 5-Bit Rice Parameters
      B.4.  Restriction of LPC Shift to Non-negative Values
-   Appendix C.  Interoperability Considerations
+   附录 C.  Interoperability Considerations
      C.1.  Features outside of the Streamable Subset
      C.2.  Variable Block Size
      C.3.  5-Bit Rice Parameters
@@ -368,9 +368,9 @@ ISSN: 2070-1721                                            December 2024
       remove redundancy from the signal, the samples of the remaining
       signal (the *residual samples*) will have, on average, a numerical
       value closer to zero than the original signal.
-   *残差*：从一个子数据块中减去一个预测模型的预测结果后留下的音频信号。
+   *残余*：从一个子数据块中减去一个预测模型的预测结果后留下的音频信号。
       如果预测模型成功地从信号中剔除了冗余数据，那么留下来的信号（即
-      *残差采样信号*）就会在数值上相比原始数据更接近 0（平均而言）。
+      *残余采样信号*）就会在数值上相比原始数据更接近 0（平均而言）。
 
    *Rice code*:  A variable-length code (see [VarLengthCode]).  It uses
       a short code for samples close to zero and a progressively longer
@@ -379,7 +379,7 @@ ISSN: 2070-1721                                            December 2024
    *Rice 编码*：一种可变长度编码（参见维基百科上的“可变长度编码”）。
       此编码对接近 0 的采样信号使用短编码，并根据采样信号与 0 的偏移值的
       大小，逐渐对偏移值更大的采样信号使用更长的编码。这种方式利用了
-      残差样本常常接近 0 的观测结果。
+      残余样本常常接近 0 的观测结果。
 
    *Muxing*:  Short for multiplexing.  Combining several streams or
       files into a single stream or file.  In the context of this
@@ -444,11 +444,11 @@ ISSN: 2070-1721                                            December 2024
        original signal.  FLAC uses Rice coding, a subset of Golomb
        coding, with either 4-bit or 5-bit parameters to code the
        residual signal.
-       *残差编码*（参见第 4.4 节）。由于预测的信号不会与原始信号完全
-       一致，产生的偏差值会被无损地编码（此偏差值也被称为误差或残差）。
-       如果预测模型是有效的，那么残差信号所需要的采样分辨率会比原始信号
-       更少。FLAC 使用 Rice 编码对残差进行编码，这是 Golomb 编码的一个
-       子集，通常使用 4 或 5 位长度的参数去编码残差信号。
+       *残余编码*（参见第 4.4 节）。由于预测的信号不会与原始信号完全
+       一致，产生的偏差值会被无损地编码（此偏差值也被称为误差或残余）。
+       如果预测模型是有效的，那么残余信号所需要的采样分辨率会比原始信号
+       更少。FLAC 使用 Rice 编码对残余进行编码，这是 Golomb 编码的一个
+       子集，通常使用 4 或 5 位长度的参数去编码残余信号。
 
    In addition, FLAC specifies a metadata system (see Section 8) that
    allows arbitrary information about the stream to be included at the
@@ -573,7 +573,7 @@ ISSN: 2070-1721                                            December 2024
        stage (it is added to the stream "verbatim"), this method is
        different from using a zero-order fixed predictor.
        *Verbatim*：不对采样信号进行任何建模，直接保存。这种方式适用于
-       含有极少相关性的输入信号。由于原始信号实际上不会经历残差编码的
+       含有极少相关性的输入信号。由于原始信号实际上不会经历残余编码的
        步骤（信号会被添加到“Verbatim”流中），这种方式与固定使用 0 阶的
        固定预测模型有所不同。
 
@@ -594,7 +594,7 @@ ISSN: 2070-1721                                            December 2024
        more information, see Section 9.2.5.
        *恒定预测模型*：采样信号的预测由 5 个确定的预测模型（或称
        预先定义好的预测模型）中的 1 个来完成，预测结果与实际信号的误差
-       由残差编码器完成进一步的处理。恒定预测模型非常适合预测简单的波形
+       由残余编码器完成进一步的处理。恒定预测模型非常适合预测简单的波形
        信号，也无需保存任何预测模型系数。从数学的角度上来看，预测模型是
        根据之前已有的采样信号推断出之后的某个采样信号。预测所使用的已有
        信号数量等于预测模型的阶数。更多信息请参见第 9.2.5 节。
@@ -616,10 +616,10 @@ ISSN: 2070-1721                                            December 2024
        dividing that sum by applying the specified right shift.  For
        more information, see Section 9.2.6.
        *线性预测模型*：信号的预测是基于已知的采样信号和一系列的预测模型
-       系数来完成，预测结果与实际信号的误差又由残差编码器处理。与恒定
+       系数来完成，预测结果与实际信号的误差又由残余编码器处理。与恒定
        预测模型相比，通用的线性预测模型在存储预测模型系数上是一笔额外的
        开销。因此这种预测模型最适合预测更复杂的信号类型。更精确的预测
-       结果降低了残差编码阶段的空间开销，抵消了存储预测模型系数所产生的
+       结果降低了残余编码阶段的空间开销，抵消了存储预测模型系数所产生的
        空间开销。FLAC 中的线性预测模型参数除了预测模型系数和预测模型阶数
        以外还有两个参数：预测模型系数的精度和预测结果的右移位数；
        预测结果通过将每个预测模型的系数与相应的之前样本相乘，并右移
@@ -639,7 +639,7 @@ ISSN: 2070-1721                                            December 2024
    *  When an encoder is unable to find a fixed or linear predictor for
       which all residual samples are representable in 32-bit signed
       integers as stated in Section 9.2.7, a verbatim subframe is used.
-      如果遇到第 9.2.7 节中所描述的，所有残差采样信号都可以使用 32 位
+      如果遇到第 9.2.7 节中所描述的，所有残余采样信号都可以使用 32 位
       有符号整数表示，并且编码器无法找到合适的恒定或线性预测模型时，应
       采用“Verbatim”方式。
 
@@ -649,7 +649,7 @@ ISSN: 2070-1721                                            December 2024
    “无损压缩数字音频（https://ieeexplore.ieee.org/document/939834）”和
    “Robinson-TR156（译注：链接太长无法排版，请去 rfc 原文查看链接）”。
 
-4.4.  残差编码
+4.4.  残余编码
 
    If a subframe uses a predictor to approximate the audio signal, a
    residual is stored to "correct" the approximation to the exact value.
@@ -894,7 +894,7 @@ ISSN: 2070-1721                                            December 2024
    整个数据流中按顺序排列，换句话说，编码后的音频数据不存在通道交叉。
    这样的方式通过更大的解码缓冲区大小以换取解码器较低的复杂度。每个
    子数据帧有自己的帧头，其规定了子数据帧的属性，例如预测模型与其阶数、
-   残差编码的参数等。其后是对应通道的编码后的音频数据。
+   残余编码的参数等。其后是对应通道的编码后的音频数据。
 
 7.  Streamable 子集
 
@@ -1016,7 +1016,7 @@ ISSN: 2070-1721                                            December 2024
 
                                   表格 2
 
-8.2.  数据流信息
+8.2.  Streaminfo
 
    The streaminfo metadata block has information about the whole stream,
    such as sample rate, number of channels, total number of samples,
@@ -1182,7 +1182,7 @@ ISSN: 2070-1721                                            December 2024
       |    第一个采样信号的带符号扩展的比特位
      第一个采样信号中最低的 8 位比特位
 
-8.3.  数据填充
+8.3.  Padding
 
    The padding metadata block allows for an arbitrary amount of padding.
    This block is useful when it is known that metadata will be edited
@@ -1192,8 +1192,8 @@ ISSN: 2070-1721                                            December 2024
    of having to insert it into the existing file (which would normally
    require rewriting the entire file).  There MAY be one or more padding
    metadata blocks per FLAC stream.
-   数据填充元数据块允许任意数量的填充。此数据块的作用是，让编码器提前
-   保留足够的空间以供编码完成后对元数据进行编辑；写入新的元数据时，这些
+   Padding 元数据块允许任意数量的比特位填充。此数据块的作用是，让编码器
+   预留足够的空间以供编码完成后对元数据进行编辑；写入新的元数据时，这些
    填充的比特位直接被覆盖，避免了调整元数据区域大小并重新写入文件的操作
    （覆盖保留的填充位比重新写入文件快得多）。FLAC 数据流中
    「可以」（MAY）出现多个数据填充元数据块。
@@ -1208,7 +1208,7 @@ ISSN: 2070-1721                                            December 2024
 
                                   表格 4
 
-8.4.  应用程序
+8.4.  Application
 
    The application metadata block is for use by third-party
    applications.  The only mandatory field is a 32-bit application
@@ -3056,7 +3056,7 @@ ISSN: 2070-1721                                            December 2024
    封装 FLAC 到 MP4 文件的定义对于本文来说过于冗长和多余。请参见
    [FLAC-in-MP4-specification]。
 
-11.  安全性的考量
+11.  安全性考量
 
    Like any other codec (such as [RFC6716]), FLAC should not be used
    with insecure ciphers or cipher modes that are vulnerable to known
@@ -3176,6 +3176,12 @@ ISSN: 2070-1721                                            December 2024
    seeking might get stuck in an infinite loop when numbers in frames
    are non-consecutive or otherwise not valid, which could be used in
    DoS attacks.
+   在未封装进容器内的 FLAC 流中定位时依靠的是帧头中的编码序号或是可选的
+   定位表元数据块。解析器「必须」（MUST）对编码序号或定位点采取尽可能
+   全面的验证；例如验证其大小是否符合范围限制、与其他的序号或定位点是否
+   冲突或者是定位过程所依赖的定位点是否合法等。跳过验证过程有可能导致
+   定位过程出现死循环，因为部分序号可能非连续或不合法；此外这种行为可能
+   会被用于 DoS 攻击。
 
    Implementors are advised to employ fuzz testing combined with
    different sanitizers on FLAC decoders to find security problems.
@@ -3187,6 +3193,9 @@ ISSN: 2070-1721                                            December 2024
    known implementations.  Besides providing a starting point for
    security testing, this set of files can also be used to test
    conformance with this specification.
+   [FLAC-decoder-testbench] 有一份较为简洁的 FLAC 测试文件，这些文件包含
+   一些极端案例，有可能会导致某些编解码器崩溃或重启。这些文件除了作为
+   安全性测试的入口以外，还可以用于测试文件与本规范的一致性。
 
    FLAC files may contain executable code, although the FLAC format is
    not designed for it and it is uncommon.  One use case where FLAC is
@@ -3202,14 +3211,25 @@ ISSN: 2070-1721                                            December 2024
    except when an application has that explicit purpose, e.g.,
    applications reading FLAC files as disc images and presenting it as a
    virtual disc drive.
+   FLAC 格式在设计时，没有考虑过包含可执行代码，但实际上有可能出现这种
+   罕见的情况；其中之一就是压缩混合模式的 CD 映像时用 FLAC 存储了可执行
+   代码（混合模式的 CD 含有音频和非音频数据，非音频数据中有可能包含
+   可执行代码），这种情况下可执行代码被当成了音频数据存储。可执行代码
+   还可能存储为元数据，例如编码为文本的 Vorbis 注释字段或是直接存储在
+   应用程序元数据块中的数据。除非应用程序有着明确的目的，例如以
+   磁盘映像的形式读取 FLAC 文件并将其以虚拟磁盘的形式提供给用户，
+   除此以外「不得」（MUST NOT）执行这些可执行代码或以将 FLAC 文件的部分
+   内容以可执行代码的形式呈现给用户。
 
 12.  IANA Considerations
 
    Per this document, IANA has registered one new media type ("audio/
    flac") and created a new IANA registry, as described in the
    subsections below.
+   IANA 已根据本文注册了一个新的媒体类型（audio/flac）和一个新的 IANA
+   注册表，详情见下方的小节。
 
-12.1.  Media Type Registration
+12.1.  媒体类型注册项
 
    IANA has registered the "audio/flac" media type as follows.  This
    media type is applicable for FLAC audio that is not packaged in a
@@ -3217,54 +3237,81 @@ ISSN: 2070-1721                                            December 2024
    container will take on the media type of that container, for example,
    "audio/ogg" when packaged in an Ogg container or "video/mp4" when
    packaged in an MP4 container alongside a video track.
+   IANA 注册的 audio/flac 媒体类型信息如下所示。这项媒体类型适用于
+   第 10 节所述的未被封装到容器中的 FLAC 音频。封装到容器中的 FLAC 音频
+   延续了容器的媒体类型，例如，封装到 Ogg 容器中就是 audio/ogg 类型、而
+   与视频一起被封装到 MP4 容器中时就是 video/mp4 类型。
 
    Type name:  audio
+   类型名称：audio
 
    Subtype name:  flac
+   子类名称：flac
 
    Required parameters:  N/A
+   所需参数：无
 
    Optional parameters:  N/A
+   可选参数：无
 
    Encoding considerations:  as per RFC 9639
+   编码考量：参照 RFC 9639
 
    Security considerations:  See the security considerations in
       Section 11 of RFC 9639.
+   安全性考量：参见 RFC 9639 中的第 11 节内容。
 
    Interoperability considerations:  See the descriptions of past format
       changes in Appendix B of RFC 9639.
 
    Published specification:  RFC 9639
+   发布标准：RFC 9639
 
    Applications that use this media type:  FFmpeg, Apache, Firefox
+   使用此媒体类型的应用程序：FFmpeg、Apache、Firefox
 
    Fragment identifier considerations:  N/A
 
    Additional information:
+   额外信息：
 
       Deprecated alias names for this type:  audio/x-flac
+      弃用的别名：audio/x-flac
       Magic number(s):  fLaC
+      魔法数字：fLaC
       File extension(s):  flac
+      文件扩展名：flac
       Macintosh file type code(s):  N/A
+      Macintosh 文件类型编码：无
       Uniform Type Identifier:  org.xiph.flac conforms to public.audio
+      统一类型标识符：org.xiph.flac conforms to public.audio
       Windows Clipboard Format Name:  audio/flac
+      Windows 剪切板类型名称：audio/flac
 
    Person & email address to contact for further information:  IETF
       CELLAR Working Group (cellar@ietf.org)
+   获取后续信息的联系人员和电子邮箱地址：
+      IETF CELLAR Working Group (cellar@ietf.org)
 
    Intended usage:  COMMON
+   用途：COMMON
 
    Restrictions on usage:  N/A
+   使用限制：无
 
    Author:  IETF CELLAR Working Group
+   作者：IETF CELLAR Working Group
 
    Change controller:  Internet Engineering Task Force (iesg@ietf.org)
+   变更控制机构：Internet Engineering Task Force (iesg@ietf.org)
 
-12.2.  FLAC Application Metadata Block IDs Registry
+12.2.  FLAC Application Metadata Block IDs 注册表
 
    IANA has created a new registry called the "FLAC Application Metadata
    Block IDs" registry.  The values correspond to the 32-bit identifier
    described in Section 8.4.
+   IANA 创建了一个名为”FLAC Application Metadata Block IDs“的新注册表。
+   注册表中的值对应第 8.4 节中描述的 32 位标识符。
 
    To register a new application ID in this registry, one needs an
    application ID, a description, an optional reference to a document
@@ -3276,17 +3323,26 @@ ISSN: 2070-1721                                            December 2024
    registered when the audio files were encoded.  An application ID can
    be any 32-bit value but is often composed of 4 ASCII characters that
    are human-readable.
+   要在此注册表中注册一个新的应用程序 ID，需要应用程序 ID、描述信息，
+   可选的描述该 ID 的文档的引用和变更控制机构（IETF 或注册邮箱）。
+   应用程序 ID 按 [RFC8126] 中的“先到先得”原则进行分配，这样就不会遇到
+   FLAC 社区所碰到的 ID 注册问题，尤其是编码未注册类型的音频文件时。
+   应用程序 ID 可以是任意的 32 位数值，但一般都以 4 个 ASCII 字符形式
+   组成，方便阅读。
 
    The initial contents of "FLAC Application Metadata Block IDs"
    registry are shown in the table below.  These initial values were
    taken from the registration page at xiph.org (see
    [ID-registration-page]), which is no longer being maintained as it
    has been replaced by this registry.
+   下面的表格是“FLAC Application Metadata Block IDs”注册表最初的内容。
+   这些最初的数值取自 xiph.org 的注册页面
+   （参见 [ID-registration-page]），该页面已被此注册表所替代，不再维护。
 
     +===========+==========+===========+===================+==========+
-    |Application|ASCII     |Description|Reference          |Change    |
-    |ID         |Rendition |           |                   |Controller|
-    |           |(If       |           |                   |          |
+    |Application|ASCII     |描述       |参考来源           |变更      |
+    |ID         |Rendition |           |                   |控制     |
+    |           |(If       |           |                   |机构      |
     |           |Available)|           |                   |          |
     +===========+==========+===========+===================+==========+
     |0x41544348 |ATCH      |FlacFile   |[FlacFile], RFC    |IETF      |
@@ -3364,11 +3420,11 @@ ISSN: 2070-1721                                            December 2024
     |0x786D6364 |xmcd      |xmcd       |RFC 9639           |IETF      |
     +-----------+----------+-----------+-------------------+----------+
 
-                                  Table 25
+                                  表格 25
 
-13.  References
+13.  参考资料
 
-13.1.  Normative References
+13.1.  规范性参考资料
 
    [ISRC-handbook]
               International ISRC Registration Authority, "International
@@ -3416,7 +3472,7 @@ ISSN: 2070-1721                                            December 2024
               DOI 10.17487/RFC9559, October 2024,
               <https://www.rfc-editor.org/info/rfc9559>.
 
-13.2.  Informative References
+13.2.  信息性参考资料
 
    [Durbin]   Durbin, J., "The Fitting of Time-Series Models", Revue de
               l'Institut International de Statistique / Review of the
@@ -3547,7 +3603,7 @@ ISSN: 2070-1721                                            December 2024
               field and header specification",
               <https://xiph.org/vorbis/doc/v-comment.html>.
 
-Appendix A.  Numerical Considerations
+附录 A.  数值考量
 
    In order to maintain lossless behavior, all arithmetic used in
    encoding and decoding sample values must be done with integer data
@@ -3557,6 +3613,10 @@ Appendix A.  Numerical Considerations
    parameter) is not a concern as long as the process of using the found
    predictor and Rice parameter to encode audio samples is implemented
    with only integer math.
+   为保证无损过程，编码和解码采样值所进行的算术运算必须使用整数类型，
+   避免了浮点数运算时因舍入而产生的误差。使用浮点数进行分析是可行的，
+   例如寻找合适的预测模型或 Rice 参数时；但进行预测和 Rice 编码时必须
+   保证仅使用整数运算。
 
    Furthermore, the possibility of integer overflow can be eliminated by
    using data types that are large enough.  Choosing a 64-bit signed
@@ -3566,15 +3626,23 @@ Appendix A.  Numerical Considerations
    devices.  This appendix provides guidelines for choosing the
    appropriate data type for each step of encoding and decoding FLAC
    files.
+   此外，整数的位溢出问题可通过使用足够大的数据类型来避免，为所有
+   涉及到采样值的算术运算采用 64 位有符号数足以避免位溢出的问题。
+   但通常情况下，为了提升计算性能，尤其是在嵌入式设备上时，运算选择的
+   数据类型往往更小。本节附录为编码和解码过程中的每一步所需要选择的
+   合适的数据类型提供了建议和指南。
 
    In this appendix, signed data types are signed two's complement.
+   在此附录中，有符号的数据类型都以二进制补码形式表示。
 
-A.1.  Determining the Necessary Data Type Size
+A.1.  确定必要的数据类型大小
 
    To find the smallest data type size that is guaranteed not to
    overflow for a certain sequence of arithmetic operations, the
    combination of values producing the largest possible result should be
    considered.
+   要找出确保特定算术运算过程中不会发生位溢出的最小数据类型大小，需要
+   考虑数值组合可能产生的最大值。
 
    For example, if two 16-bit signed integers are added, the largest
    possible result forms if both values are the largest number that can
@@ -3587,6 +3655,12 @@ A.1.  Determining the Necessary Data Type Size
    unknown values stored in 8-bit signed integers, we need a signed
    integer data type of at least 13 bits to store the result, as the log
    base 2 of 18 rounded up is 5.
+   举个例子，如果两个值为 16 位有符号整数所能表示的最大整数相加，其结果
+   至少需要 17 位的整数才能表示，4 个这样的整数相加至少需要 18 位，8 个
+   这样的整数相加至少需要 19 位的整数才能表示，依此类推。因此，保存两个
+   整数相加的结果至少需要额外的以 2 为底的指数，向上取整个位数。按此推算
+   18 个 8 位有符号整数相加的结果，至少需要一个 13 位的整数去保存（以 2
+   为底 18 的对数再向上取整得到的值是 5）。
 
    When multiplying two numbers, the number of bits needed for the
    result is the size of the first number plus the size of the second
@@ -3595,6 +3669,10 @@ A.1.  Determining the Necessary Data Type Size
    be stored without overflowing.  To show this in practice, the largest
    signed value that can be stored in 4 bits is -8. (-8)*(-8) is 64,
    which needs at least 8 bits (signed) to store.
+   当两个数相乘时，存储其运算结果的数需要的位数是两个数的大小之和。例如
+   两个 16 位的有符号数相乘，为防止位溢出，其结果需要一个至少 32 位的数
+   存储。举一个实际的例子，两个 4 位有符号数能表示的最大值（全 1）是
+   -8，而 (-8)*(-8) 等于 64，这就需要至少 8 位大的有符号数存储。
 
 A.2.  Stereo Decorrelation
 
