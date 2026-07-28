@@ -128,11 +128,11 @@ ISSN: 2070-1721                                            December 2024
      13.1.  规范性参考资料
      13.2.  信息性参考资料
    附录 A.  数值考量
-     A.1.  Determining the Necessary Data Type Size
-     A.2.  Stereo Decorrelation
-     A.3.  Prediction
-     A.4.  Residual
-     A.5.  Rice Coding
+     A.1.  确定必要的数据类型大小
+     A.2.  立体声去相关性
+     A.3.  预测结果
+     A.4.  残余值
+     A.5.  Rice 编码
    附录 B.  Past Format Changes
      B.1.  Addition of Blocking Strategy Bit
      B.2.  Restriction of Encoded Residual Samples
@@ -168,8 +168,8 @@ ISSN: 2070-1721                                            December 2024
        D.3.2.  示例文件 3 的二进制表示（只有音频帧）
        D.3.3.  Streaminfo 元数据块
        D.3.4.  音频帧
-   Acknowledgments
-   Authors' Addresses
+   致谢
+   作者地址和联系方式
 
 1.  引言
 
@@ -3671,22 +3671,29 @@ A.1.  确定必要的数据类型大小
    存储。举一个实际的例子，两个 4 位有符号数能表示的最大值（全 1）是
    -8，而 (-8)*(-8) 等于 64，这就需要至少 8 位大的有符号数存储。
 
-A.2.  Stereo Decorrelation
+A.2.  立体声去相关性
 
    When stereo decorrelation is used, the side channel will have one
    extra bit of bit depth; see Section 4.2.
+   应用立体声去相关性时，侧通道的采样深度需要一个额外的比特位，
+   参见第 4.2 节。
 
    This means that while 16-bit signed integers have sufficient range to
    store samples from a fully decoded FLAC frame with a bit depth of 16
    bits, the decoding of a side subframe in such a file will need a data
    type with at least 17 bits to store decoded subframe samples before
    undoing stereo decorrelation.
+   这意味着 16 位有符号整数足以存储完全解码后的 16 位采样深度的 FLAC 帧
+   里的采样值，解码侧通道子帧时需要一个至少有 17 位长度的数据类型用于
+   存储还原立体声去相关性之前解码得到的子帧采样值。
 
    Most FLAC decoders store decoded (subframe) samples as 32-bit values,
    which is sufficient for files with bit depths up to (and including)
    31 bits.
+   大多数 FLAC 解码器以 32 位存储解码的子帧采样值，对于采样深度小于等于
+   31 位的文件来说完全足够。
 
-A.3.  Prediction
+A.3.  预测结果
 
    A prediction (which is used to calculate the residual on encoding or
    added to the residual to calculate the sample value on decoding) is
@@ -3694,6 +3701,9 @@ A.3.  Prediction
    to eliminate the possibility of integer overflow, the combination of
    preceding sample values and predictor coefficients producing the
    largest possible value should be considered.
+   预测结果（用于编码时计算残余或解码时与残余相加得到原始采样值）由多个
+   采样值乘以特定系数并相加得到。要完全避免整数的位溢出，应考虑采样值与
+   预测模型系数运算结果的最大值（译注：对于负数而言就是绝对值）。
 
    To determine the size of the data type needed to calculate either a
    residual sample (on encoding) or an audio sample value (on decoding)
@@ -3703,34 +3713,42 @@ A.3.  Prediction
    form of stereo decorrelation, the subframe coding for the side
    channel would need 16+1+3 bits if a third-order fixed predictor is
    used.
+   用于存储采用固定预测模型的子帧里，编码时用于计算的残余采样值，或
+   解码时得到的音频采样值所需要的数据类型的大小已在附录 A.1 和下表中
+   通过计算得出。举个例子，一个编码了 16 位采样深度的音频，同时应用了
+   立体声去相关性的帧，其采用了一个 3 阶固定预测模型的子帧在编码侧通道时
+   需要 16+1+3 个比特位大小的数据类型用于存储。
 
-     +=======+==============================+===============+=======+
-     | Order | Calculation of Residual      | Sample Values | Extra |
-     |       |                              | Summed        | Bits  |
-     +=======+==============================+===============+=======+
-     | 0     | a(n)                         | 1             | 0     |
-     +-------+------------------------------+---------------+-------+
-     | 1     | a(n) - a(n-1)                | 2             | 1     |
-     +-------+------------------------------+---------------+-------+
-     | 2     | a(n) - 2 * a(n-1) + a(n-2)   | 4             | 2     |
-     +-------+------------------------------+---------------+-------+
-     | 3     | a(n) - 3 * a(n-1) + 3 *      | 8             | 3     |
-     |       | a(n-2) - a(n-3)              |               |       |
-     +-------+------------------------------+---------------+-------+
-     | 4     | a(n) - 4 * a(n-1) + 6 *      | 16            | 4     |
-     |       | a(n-2) - 4 * a(n-3) + a(n-4) |               |       |
-     +-------+------------------------------+---------------+-------+
+     +=======+==============================+==============+========+
+     | 阶数  | 残余值计算公式               | 采样值之和   | 额外位 |
+     +=======+==============================+==============+========+
+     | 0     | a(n)                         | 1            | 0      |
+     +-------+------------------------------+--------------+--------+
+     | 1     | a(n) - a(n-1)                | 2            | 1      |
+     +-------+------------------------------+--------------+--------+
+     | 2     | a(n) - 2 * a(n-1) + a(n-2)   | 4            | 2      |
+     +-------+------------------------------+--------------+--------+
+     | 3     | a(n) - 3 * a(n-1) + 3 *      | 8            | 3      |
+     |       | a(n-2) - a(n-3)              |              |        |
+     +-------+------------------------------+--------------+--------+
+     | 4     | a(n) - 4 * a(n-1) + 6 *      | 16           | 4      |
+     |       | a(n-2) - 4 * a(n-3) + a(n-4) |              |        |
+     +-------+------------------------------+--------------+--------+
 
-                                 Table 26
+                                 表格 26
 
    Where:
+   其中：
 
    *  n is the number of the sample being predicted.
+      n 是待预测的采样的编号。
 
    *  a(n) is the sample being predicted.
+      a(n) 是待预测的采样信号。
 
    *  a(n-1) is the sample before the one being predicted, a(n-2) is the
       sample before that, etc.
+      a(n-1) 是待预测采样往前第一个采样，a(n-2) 是再往前一个，依此类推。
 
    For subframes with a linear predictor, the calculation is a little
    more complicated.  Each prediction is the sum of several
@@ -3740,6 +3758,11 @@ A.3.  Prediction
    of the audio samples.  To account for the summing of these
    multiplications, the log base 2 of the predictor order rounded up is
    added.
+   对于采用线性预测模型的子帧，存储大小的计算过程会稍微复杂一些。
+   预测结果是几个采样与对应预测模型系数相乘之和。将预测模型系数精度
+   （位数）与音频的采样深度相加可计算出所需的额外比特位。要计算存储
+   预测结果所需的数据类型大小，加上以 2 为底，预测模型阶数的对数，将其
+   向上取整的值即可。
 
    For example, if the sample bit depth of the source is 24, the current
    subframe encodes a side channel (see Section 4.2), the predictor
@@ -3750,8 +3773,14 @@ A.3.  Prediction
    and a predictor coefficient precision of 12 bits, the minimum
    required size of the used signed integer data type is (16 + 1) + 12 +
    ceil(log2(8)) = 32 bits.
+   举个例子，假设原始音频采样深度是 24 位，其中一个子帧编码了一个侧通道
+   （参见第 4.2 节），其预测模型的阶数是 12，系数精度是 15 位，那么使用
+   有符号整数类型进行存储所需要的大小最小是（译注：ceil() 表示向上取整）
+   (24 + 1) + 15 + ceil(log2(12)) = 44 位。另一个例子中，编码侧通道的
+   子帧采样深度为 16 位，预测模型的阶数是 8，系数精度是 12 位，则最小
+   大小是 (16 + 1) + 12 + ceil(log2(8)) = 32 位。
 
-A.4.  Residual
+A.4.  残余值
 
    As stated in Section 9.2.7, an encoder must make sure residual
    samples are representable by a 32-bit integer, signed two's
@@ -3762,6 +3791,11 @@ A.4.  Residual
    integer, as that satisfies both of the mentioned criteria.  When this
    implicit fit is not achieved, all residual values must be calculated
    and checked individually.
+   第 9.2.7 节中要求编码器必须保证残余采样值以 32 位整数的二进制补码形式
+   表示，其中不包括最大负值。上一节中已经可以计算出残余值何时隐式符合，
+   何时需要额外的校验。当残余值在理论上的 31 位有符号整数能表示的
+   范围内时，它是隐式符合的；无法满足隐式符合时，必须对所有的残余值进行
+   单独的计算和校验。
 
    For the residual of a fixed predictor, the maximum residual sample
    size was already calculated in the previous section.  However, for a
@@ -3770,18 +3804,28 @@ A.4.  Residual
    bits calculated in the previous section, reduced by the prediction
    right shift, and increased by one bit to account for the subtraction
    of the prediction from the current sample on encoding.
+   上一节已经计算出存储采用固定预测模型得到的残余采样值所需要的数据类型
+   的大小。然而在线性预测模型中，预测结果还需要右移一定的位数，因此通过
+   上一节计算过程计算出的大小还需要减去右移位数然后加 1，这是因为需要
+   考虑编码一个采样时需要使用预测结果减去实际采样值的情况。
 
    Taking the last example of the previous section, where 32 bits were
    needed for the prediction, the required data type size for the
    residual samples in case of a right shift of 10 bits would be 32 - 10
    + 1 = 23 bits, which means it is not necessary to perform the
    aforementioned check.
+   上一节中的最后一个例子里存储预测结果需要 32 位，而在对其右移 10 位后
+   是 32 - 10 + 1 = 23 位，这样就不需要执行上文提到的校验了。
 
    As another example, when encoding 32-bit PCM with fixed predictors,
    all predictor orders must be checked.  While the zero-order fixed
    predictor is guaranteed to have residual samples that fit a 32-bit
    signed integer, it might produce a residual sample value that is the
    most negative representable value of that 32-bit signed integer.
+   另一个例子是使用固定预测模型编码 32 位的 PCM 音频，这种情况下必须检查
+   所有预测模型的阶数。其中 0 阶固定预测模型虽然能保证残余值在 32 位
+   有符号整数能表示的范围内，但可能会产生 32 位有符号数能表示的最小值，
+   即最大的负数。
 
    Note that on decoding, while the residual sample values are limited
    to the aforementioned range, the predictions are not.  This means
@@ -3789,8 +3833,12 @@ A.4.  Residual
    32-bit signed integers, decoders must be sure to execute the addition
    of each residual sample to its accompanying prediction with a signed
    integer data type that is wide enough, as with encoding.
+   需要注意，在解码时，虽然残余采样值在上文提到的范围内，但预测结果
+   有可能超出这个范围。这意味着解码时残余采样值可以直接以 32 位
+   有符号整数形式存储，但解码器必须确保在对残余值与其对应的预测结果进行
+   求和时所用的整数范围大小足够容纳计算结果。
 
-A.5.  Rice Coding
+A.5.  Rice 编码
 
    When folding (i.e., zigzag encoding) the residual sample values, no
    extra bits are needed when the absolute value of each residual sample
@@ -3800,6 +3848,10 @@ A.5.  Rice Coding
    implementations choose to require one extra bit of data type size so
    zigzag encoding can happen in one step without a cast instead of the
    procedure described in the previous sentence.
+   折叠（Zigzag 编码）残余采样值时，假如上一步中残余值先以一个同样大小的
+   无符号整数存储，再乘以 2，然后根据残余值的正负决定是否减 1，就不需要
+   额外的比特位。许多解码器不这样做，而是先增加一个额外的比特位，使
+   Zigzag 编码在一步内就能完成，无需进行数据类型转换。
 
 Appendix B.  Past Format Changes
 
@@ -5198,7 +5250,7 @@ D.3.4.  音频帧
    metadata block.
    计算结果与 Streaminfo 中的 MD5 相等。
 
-Acknowledgments
+致谢
 
    FLAC owes much to the many people who have advanced the audio
    compression field so freely.  For instance:
@@ -5224,7 +5276,7 @@ Acknowledgments
    were originally developed by Josh Coalson.  While many others have
    contributed since, this original effort is deeply appreciated.
 
-Authors' Addresses
+作者地址和联系方式
 
    Martijn van Beurden
    Netherlands
