@@ -138,15 +138,15 @@ ISSN: 2070-1721                                            December 2024
      B.2.  Restriction of Encoded Residual Samples
      B.3.  Addition of 5-Bit Rice Parameters
      B.4.  Restriction of LPC Shift to Non-negative Values
-   附录 C.  Interoperability Considerations
-     C.1.  Features outside of the Streamable Subset
-     C.2.  Variable Block Size
-     C.3.  5-Bit Rice Parameters
-     C.4.  Rice Escape Code
-     C.5.  Uncommon Block Size
-     C.6.  Uncommon Bit Depth
-     C.7.  Multi-Channel Audio and Uncommon Sample Rates
-     C.8.  Changing Audio Properties Mid-Stream
+   附录 C.  互操作性考量
+     C.1.  Streamable 子集以外的特征
+     C.2.  可变块大小
+     C.3.  5 位 Rice 参数
+     C.4.  Rice 转义码
+     C.5.  罕见块大小
+     C.6.  罕见采样深度
+     C.7.  多通道音频与罕见采样率
+     C.8.  中途改变的音频属性
    附录 D.  示例
      D.1.  解码示例 1
        D.1.1.  示例文件 1 的十六进制表示
@@ -3935,7 +3935,7 @@ B.4.  Restriction of LPC Shift to Non-negative Values
    that were already widely in use at that point were not able to handle
    such subframes.
 
-Appendix C.  Interoperability Considerations
+附录 C.  互操作性考量
 
    As documented in Appendix B, there have been some changes and
    additions to the FLAC format.  Additionally, implementation of
@@ -3944,13 +3944,20 @@ Appendix C.  Interoperability Considerations
    features.  Finally, many lower-quality FLAC decoders only implement
    just enough features required for playback of the most common FLAC
    files.
+   如附录 B 中所述，FLAC 格式已有一些变化和额外特征。此外，FLAC 格式的
+   特定特征实现花费了数年时间，这意味着早先实现的解码器无法用于测试这些
+   特征。最后，许多低质量的 FLAC 解码器只实现了足够用于回放常见 FLAC
+   文件的特征。
 
    This appendix provides some considerations for encoder
    implementations aiming to create highly compatible files.  As this
    topic is one that might change after this document is published,
    consult [FLAC-wiki-interoperability] for more up-to-date information.
+   本附录为期望实现较高兼容性的编码器提供了一些值得考虑的话题。这些话题
+   可能会在本文发布之后发生变化。如需最新信息，请参考
+   [FLAC-wiki-interoperability]。
 
-C.1.  Features outside of the Streamable Subset
+C.1.  Streamable 子集以外的特征
 
    As described in Section 7, FLAC specifies a subset of its
    capabilities as the FLAC streamable subset.  Certain decoders may
@@ -3958,8 +3965,12 @@ C.1.  Features outside of the Streamable Subset
    imposed by the streamable subset.  Therefore, maximum compatibility
    with decoders is achieved when the limitations of the FLAC streamable
    subset are followed when creating FLAC files.
+   第 7 节中，FLAC 规定了一个自身的子集，称为 Streamable 子集。特定的
+   解码器可以只解码符合 Streamable 子集所强制要求的各种限制条件的
+   FLAC 文件。因此，要让编码的 FLAC 文件与解码器的兼容性最佳，编码时应该
+   遵循 FLAC Streamable 子集的限制条件。
 
-C.2.  Variable Block Size
+C.2.  可变块大小
 
    Because it is often difficult to find the optimal arrangement of
    block sizes for maximum compression, most encoders choose to create
@@ -3970,8 +3981,13 @@ C.2.  Variable Block Size
    there have been some changes to the way variable block size streams
    are encoded.  Because of this, maximum compatibility with decoders is
    achieved when FLAC files are created using fixed block size streams.
+   为实现最大压缩率而优化块的分配通常是非常困难的，大多数编码器在
+   创建文件时采用固定块大小。正因如此，许多解码器实现在处理可变块大小的
+   文件或流时作用很小，有时还会出现解码问题或根本不进行解码。此外，如
+   附录 B.1 中所述，可变块大小的流的编码方式已有一些变化，所以当
+   FLAC 文件以固定块大小的方式编码时与解码器的兼容性最佳。
 
-C.3.  5-Bit Rice Parameters
+C.3.  5 位 Rice 参数
 
    As the addition of the coding method using 5-bit Rice parameters, as
    described in Appendix B.3, occurred quite a few years after the FLAC
@@ -3983,8 +3999,14 @@ C.3.  5-Bit Rice Parameters
    decoders is achieved when FLAC files containing audio with a bit
    depth of 16 bits or less are created without any use of 5-bit Rice
    parameters.
+   附录 B.3 中的 5 位 Rice 参数作为额外的编码方法在 FLAC 格式首次公布后
+   的几年内就出现了，一些早期的解码器可能无法解码用这种方式编码的文件。
+   这种编码方式的作为提升针对 24 位 PCM 音频的压缩率而引入，而使用这种
+   方式对 16 位 PCM音频的压缩率提升效果微乎其微。因此，当 FLAC 文件编码
+   的音频采样深度小于等于 16 位时不采用 5 位 Rice 参数进行编码时与解码器
+   的兼容性最佳。
 
-C.4.  Rice Escape Code
+C.4.  Rice 转义码
 
    Escaped Rice partitions are seldom used, as it turned out their use
    provides only a very small compression improvement.  As many encoders
@@ -3993,30 +4015,44 @@ C.4.  Rice Escape Code
    decode them correctly.  Therefore, maximum compatibility with
    decoders is achieved when FLAC files are created without any use of
    escaped Rice partitions.
+   转义的 Rice 分区由于其对压缩率的提升效果贡献极小，因此非常少见。同时
+   许多解码器无法正确解码转义的 Rice 分区，许多编码器因此默认不采用
+   或是完全不使用转义的 Rice 分区进行编码；所以当 FLAC 文件不包含转义的
+   Rice 分区时与解码器的兼容性最佳。
 
-C.5.  Uncommon Block Size
+C.5.  罕见块大小
 
    For unknown reasons, some decoders have chosen to support only common
    block sizes for all but the last block of a stream.  Therefore,
    maximum compatibility with decoders is achieved when creating FLAC
    files using common block sizes, as listed in Section 9.1.1, for all
    but the last block of a stream.
+   出于某些未知原因，一些解码器除了最后一个块以外只支持常见块大小。
+   因此，当 FLAC 文件采用第 9.1.1 节中列出的常见块大小进行编码时（除了
+   最后一个块）与解码器的兼容性最佳。
 
-C.6.  Uncommon Bit Depth
+C.6.  罕见采样深度
 
    Most audio is stored in bit depths that are a whole number of bytes,
    e.g., 8, 16, or 24 bits.  However, there is audio with different bit
    depths.  A few examples:
+   绝大多数音频存储的采样深度都是整数字节大小，例如 8、16 或 24。例外
+   情况如下：
 
    *  DVD-Audio has the possibility to store 20-bit PCM audio.
+   *  DVD 音频有可能存储 20 位 PCM 音频。
 
    *  DAT and DV can store 12-bit PCM audio.
+   *  DAT 和 DV 可能存储 12 位 PCM 音频。
 
    *  NICAM-728 samples at 14 bits, which is companded to 10 bits.
+   *  NICAM-728 的采样深度是 14 位并压缩至 10 位。
 
    *  8-bit µ-law can be losslessly converted to 14-bit (Linear) PCM.
+   *  8 位 µ 律编码可被无损地转换为 14 位（线性）PCM。
 
    *  8-bit A-law can be losslessly converted to 13-bit (Linear) PCM.
+   *  8 位 A 律编码可被无损地转换为 13 位（线性）PCM。
 
    The FLAC format can contain these bit depths directly, but because
    they are uncommon, some decoders are not able to process the
@@ -4025,10 +4061,16 @@ C.6.  Uncommon Bit Depth
    compression by padding each sample with zero bits to a bit depth that
    is a whole byte.  The FLAC format can efficiently compress these
    wasted bits.  See Section 9.2.2 for details.
+   FLAC 格式中可以直接包含这些采样深度的编码，但因其是罕见采样深度，一些
+   解码器无法完成正确。可避免以压缩率为代价的填充采样深度至整数字节的
+   编码方式，而以更常见的采样深度存储上面这些格式的音频。FLAC 能够
+   非常有效地利用这些无用的比特位，详情参见第 9.2.2 节。
 
    Therefore, maximum compatibility with decoders is achieved when FLAC
    files are created by padding samples of such audio with zero bits to
    the bit depth that is the next whole number of bytes.
+   因此，当 FLAC 文件以填充 0 比特的方式将这些音频填充至整数字节的
+   采样深度时与解码器的兼容性最佳。
 
    In cases where the original signal is already padded, this operation
    cannot be reversed losslessly without knowing the original bit depth.
@@ -4036,14 +4078,21 @@ C.6.  Uncommon Bit Depth
    example, in a Vorbis comment field or by storing the header of the
    original file.  The choice of a suitable method is left to the
    implementor.
+   当原始音频已被填充，则无法在不知道其原始采样深度的情况下无损地还原
+   填充操作。为了避免歧义，必须存储原始的采样深度；可以将其存储在
+   Vorbis 注释字段中或原始文件的头部。至于选择的方式，则交给编解码器的
+   实现者去考虑。
 
    Besides audio with a "non-whole byte" bit depth, some decoder
    implementations have chosen to only accept FLAC files coding for PCM
    audio with a bit depth of 16 bits.  Many implementations support bit
    depths up to 24 bits, but no higher.  Consult
    [FLAC-wiki-interoperability] for more up-to-date information.
+   除了“非整数字节”采样深度的音频，一些解码器实现选择仅支持编码了 16 位
+   PCM 音频的 FLAC 文件，而许多解码器实现最高可以支持 24 位的采样深度。
+   最新的相关信息请参见 [FLAC-wiki-interoperability]。
 
-C.7.  Multi-Channel Audio and Uncommon Sample Rates
+C.7.  多通道音频与罕见采样率
 
    Many FLAC audio players are unable to render multi-channel audio or
    audio with an uncommon sample rate.  While this is not a concern
@@ -4052,11 +4101,17 @@ C.7.  Multi-Channel Audio and Uncommon Sample Rates
    interoperability considerations, this is one where compatibility
    cannot be improved without sacrificing the lossless nature of the
    FLAC format.
+   许多 FLAC 音频播放器无法处理多通道音频和采用罕见采样率的音频。这虽然
+   不是一个仅限 FLAC 格式所需要考虑的问题，但当考虑与解码器的最佳兼容性
+   时值得一提。与前面提到的互操作性考量不同的是，在不以 FLAC 格式天然的
+   无损特征为代价的情况下无法提升兼容性。
 
    From a non-exhaustive inquiry, it seems that a non-negligible number
    of players, especially hardware players, do not support audio with 3
    or more channels or sample rates other than those considered common;
    see Section 9.1.2.
+   据不完全调查，数量众多的播放器，尤其是硬件播放器并不支持超过两个通道
+   的音频和采用了罕见采样率的音频（参见第 9.1.2 节）。
 
    For those players that do support and are able to render multi-
    channel audio, many do not parse and use the
@@ -4064,8 +4119,12 @@ C.7.  Multi-Channel Audio and Uncommon Sample Rates
    also an interoperability consideration because compatibility cannot
    be improved without sacrificing the lossless nature of the FLAC
    format.
+   而那些真正支持并可以处理多通道音频的播放器中，又有许多播放器并不解析
+   或使用 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签（参见第 8.6.2 节）。
+   这也是一个互操作性考量的问题，因为如果不牺牲 FLAC 格式天然的无损特征
+   就无法提升兼容性。
 
-C.8.  Changing Audio Properties Mid-Stream
+C.8.  中途改变的音频属性
 
    Each FLAC frame header stores the audio sample rate, number of bits
    per sample, and number of channels independently of the streaminfo
@@ -4076,6 +4135,12 @@ C.8.  Changing Audio Properties Mid-Stream
    changing playback properties during playback is often not possible
    without interrupting playback.  Also, as explained in Section 9,
    using this feature of FLAC results in various practical problems.
+   每个 FLAC 帧头中都存储着音频采样率、采样深度和独立于 Streaminfo
+   元数据块和其他帧头中存储的通道数，这么做可以实现 FLAC 的多播，也允许
+   这些属性值在中途发生变化。然而许多 FLAC 解码器无法处理这种变化，一些
+   兼容此特征的其他格式在不中断回放的情况下通常也是无法更改回放属性的。
+   同时第 9 节中也说明了采用这种特征的 FLAC 文件在实际使用过程中通常会
+   产生许多问题。
 
    However, even when storing an audio stream with changing properties
    in FLAC encapsulated in a container capable of handling such changes,
@@ -4087,6 +4152,13 @@ C.8.  Changing Audio Properties Mid-Stream
    frame headers (see Section 9.1) are the same.  This can be achieved
    by splitting up an input stream with changing audio properties at the
    points where these properties change into separate streams or files.
+   虽然第 9 节中推荐将存在音频属性变化的 FLAC 封装进支持处理这种变化特性
+   的容器中，许多解码器仍然无法正确地解码这种音频流。因此，只有当 FLAC
+   文件以单一音频属性集合进行编码，即编码并存储在 Streaminfo 元数据块中
+   的属性值（参见第 8.2 节）与所有编码在帧头中的属性值（参见第 9.1 节）
+   相同时，才能实现与解码器的最佳兼容性；实际过程中，只需要找到音频属性
+   发生变化的位置，将音频属性不同的部分分离并单独编码为独立的流或者文件
+   就可以实现。
 
 附录 D.  示例
 
