@@ -1,6 +1,6 @@
-﻿本文是 RFC 9639 的简体中文翻译版本，已保留部分英文原文供对比参考。
-翻译提供者：梦石（mengshitia），保留所有权利。
-任何人均可在 CC BY-NC 4.0 协议框架下共享、演绎本文档。
+﻿本文是 RFC 9639 的简体中文翻译，个人翻译。
+翻译提供者：梦石（mengshitia@gmail.com）
+
 
 Internet Engineering Task Force (IETF)                M.Q.C. van Beurden
 Request for Comments: 9639                                              
@@ -12,77 +12,47 @@ ISSN: 2070-1721                                            December 2024
 
 摘要
 
-   This document defines the Free Lossless Audio Codec (FLAC) format and
-   its streamable subset.  FLAC is designed to reduce the amount of
-   computer storage space needed to store digital audio signals.  It
-   does this losslessly, i.e., it does so without losing information.
-   FLAC is free in the sense that its specification is open and its
-   reference implementation is open source.  Compared to other lossless
-   audio coding formats, FLAC is a format with low complexity and can be
-   encoded and decoded with little computing resources.  Decoding of
-   FLAC has been implemented independently for many different platforms,
-   and both encoding and decoding can be implemented without needing
-   floating-point arithmetic.
-   本文定义了 FLAC 格式及其“streamable”子集。FLAC 的设计目的是减少
-   存储数字音频信号所需要的计算机存储空间。这个过程是无损的，即不会造成
-   数据丢失。因其开放的规范和开源的参考实现，FLAC 被认为是自由的。
-   相比其他的无损音频编码格式，FLAC 格式的编码复杂度较低，因此只需要
-   少量计算资源即可完成编码和解码。现已有针对不同平台、独立实现的
-   FLAC 解码工具。编码和解码 FLAC 的过程中不需要使用浮点数运算。
+   本文定义了 FLAC 格式及其 Streamable 子集。FLAC 的设计目的是减少
+   存储数字音频信号所需要的计算机存储空间。这样的（数据压缩）过程是
+   无损的，即不会造成数据丢失。因其开放的规范和开源的参考实现，FLAC 是
+   自由的。相比其他的无损音频编码格式，FLAC 格式的编码复杂度较低，只需要
+   少量计算资源即可完成编码和解码。现已有针对不同平台、独立实现的 FLAC
+   解码工具。编码和解码 FLAC 的过程中不需要使用浮点数运算。
 
 备忘录状态
 
-   This is an Internet Standards Track document.
-   这是一份互联网标准文档。
+   这是一份因特网标准（Internet Standard Track）文档。
 
-   This document is a product of the Internet Engineering Task Force
-   (IETF).  It represents the consensus of the IETF community.  It has
-   received public review and has been approved for publication by the
-   Internet Engineering Steering Group (IESG).  Further information on
-   Internet Standards is available in Section 2 of RFC 7841.
-   本文由互联网工程任务组（IETF）发布，代表 IETF 社区的共识。本文已接受
-   公众审阅，并获得了互联网工程指导小组（IESG）的发布批准。更多关于
-   互联网标准的信息可在 RFC 7841 的第 2 节处获取。
+   本文由因特网工程任务组（IETF）发布，代表 IETF 社区的共识。本文已接受
+   公众审阅，并获得了因特网工程指导组（IESG）的发布批准。与因特网标准
+   （Internet Standards）有关的更多信息可在 RFC 7841 的第 2 节处获取。
 
-   Information about the current status of this document, any errata,
-   and how to provide feedback on it may be obtained at
-   https://www.rfc-editor.org/info/rfc9639.
    关于本文档目前的状态、任何勘误，以及提供反馈的方式可在
    https://www.rfc-editor.org/info/rfc9639 处获取。
 
 版权信息
 
-   Copyright (c) 2024 IETF Trust and the persons identified as the
-   document authors.  All rights reserved.
-   版权所有 (c) 2024 IETF Trust 和本文作者。保留所有权利。
+   版权所有 (c) 2024 IETF Trust 和本文所标注的作者，保留所有权利。
 
-   This document is subject to BCP 78 and the IETF Trust's Legal
-   Provisions Relating to IETF Documents
-   (https://trustee.ietf.org/license-info) in effect on the date of
-   publication of this document.  Please review these documents
-   carefully, as they describe your rights and restrictions with respect
-   to this document.  Code Components extracted from this document must
-   include Revised BSD License text as described in Section 4.e of the
-   Trust Legal Provisions and are provided without warranty as described
-   in the Revised BSD License.
    本文自发布之日起即生效，并受在 BCP 78 与 IETF Trust 对 IETF 文档的
    有关法律规定（https://trustee.ietf.org/license-info）的约束。
-   请仔细阅读这些文档，它们描述了与本文相关的权利和限制。从本文中提取的
-   代码内容必须按照 IETF Trust 法律规定中的第 4.e 节，包含一份修订过的
-   BSD 许可证；同时，根据 BSD 许可证中的描述，这些代码不提供任何保障。
+   请仔细阅读这些文档，它们描述了与本文相关的使用者的权利和限制。从本文
+   提取的代码内容必须按照 IETF Trust 法律规定中第 4.e 节的描述，包含一份
+   修订过的 BSD 许可证。同时，根据 BSD 许可证中的描述，这些代码不提供
+   任何可用性保障。
 
 目录
 
-   1.  引言
-   2.  注释与惯例
+   1.  前言
+   2.  标记方式与惯例
    3.  定义
-   4.  概念一览
-     4.1.  数据分块
-     4.2.  通道间去相关性
+   4.  概念总览
+     4.1.  分块
+     4.2.  声道间去相关
      4.3.  预测
-     4.4.  残余编码
+     4.4.  编码残差
    5.  格式原则
-   6.  格式布局一览
+   6.  格式布局总览
    7.  Streamable 子集
    8.  文件级元数据
      8.1.  元数据块头部
@@ -171,378 +141,197 @@ ISSN: 2070-1721                                            December 2024
    致谢
    作者地址和联系方式
 
-1.  引言
+1.  前言
 
-   This document defines the Free Lossless Audio Codec (FLAC) format and
-   its streamable subset.  FLAC files and streams can code for pulse-
-   code modulated (PCM) audio with 1 to 8 channels, sample rates from 1
-   to 1048575 hertz, and bit depths from 4 to 32 bits.  Most tools for
-   coding to and decoding from the FLAC format have been optimized for
-   CD-audio, which is PCM audio with 2 channels, a sample rate of 44.1
-   kHz, and a bit depth of 16 bits.
-   本文定义了 FLAC 格式及其“streamable”子集。FLAC 文件或流可编码
-   脉冲编码调制音频（PCM），这种音频编码包含 1 到 8 个通道，采样率范围为
-   1 到 1048575 赫兹，位深度范围为 4 到 32 位。大多数编码和解码 FLAC 的
-   工具都针对数字音频光盘进行了优化，即通常是包含 2 个通道、采样率为
-   44.1 kHz、位深度为 16 位的脉冲编码调制音频。
+   本文定义了 FLAC 格式及其 Streamable 子集。可将采用了脉冲编码调制
+   （PCM）、包含 1 到 8 个声道、采样率从 1 到 1048575 赫兹、位深度从
+   4 到 32 位的音频编码为 FLAC 文件或流的形式。大部分编解码 FLAC 格式的
+   工具都针对存储于光盘的数字音频进行了优化，即针对包含 2 个声道、
+   采样率为 44.1 kHz、位深度为 16 位的脉冲编码调制音频进行了优化。
 
-   FLAC is able to achieve lossless compression because samples in audio
-   signals tend to be highly correlated with their close neighbors.  In
-   contrast with general-purpose compressors, which often use
-   dictionaries, do run-length coding, or exploit long-term repetition,
-   FLAC removes redundancy solely in the very short term, looking back
-   at 32 samples at most.
-   FLAC 能够实现无损压缩的原因在于音频信号往往与其邻近信号密切相关。
-   不同于那些经常使用字典、行程长度编码或是利用大尺度范围内
-   信号长度重复的通用压缩工具，FLAC 只在小尺度的信号长度范围内移除冗余，
-   最多向前回顾 32 个采样信号。
-   （译注：关于“long-term”和“short term”的具体含义，个人认为应参考原文的
-   “... 32 samples at most”进行理解，此时 32 个采样信号长度就代表
-   “short term”，而大于 32 个采样信号的信号长度代表“long-term”。）
+   FLAC 能够实现无损压缩的原因在于音频采样信号往往与其邻近信号密切相关。
+   与那些常用字典、行程长度编码或利用长期重复性（Long-term repetition）
+   进行数据压缩的通用压缩工具不同，FLAC 只在短期内移除数据冗余，最多只
+   向前回顾 32 个采样信号。
 
-   The coding methods provided by the FLAC format work best on PCM audio
-   signals with samples that have a signed representation and are
-   centered around zero.  Audio signals in which samples have an
-   unsigned representation must be transformed to a signed
-   representation as described in this document in order to achieve
-   reasonable compression.  The FLAC format is not suited for
-   compressing audio that is not PCM.
-   FLAC 格式提供的编码方式应用在采样信号以有符号数表示并且以 0 位中心的
-   脉冲编码调制音频信号上表现最佳。采样信号以无符号数表示的音频信号必须
-   转换为有符号数表示的信号才能获得较好的压缩结果。FLAC 格式不适合压缩
-   非脉冲编码调制的音频信号。
+   FLAC 格式提供的编码方式应用在采样信号数值以有符号数表示并且
+   以零点为中心的脉冲编码调制的音频上表现最佳。对于采样信号数值以
+   无符号数表示的音频，如需获得较为合理的压缩效果，则必须将其数值转换为
+   有符号数表示。非脉冲编码调制的音频不适合使用 FLAC 格式进行压缩。
 
-2.  注释与惯例
+2.  标记方式与惯例
 
-   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
-   "OPTIONAL" in this document are to be interpreted as described in
-   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
-   capitals, as shown here.
-   本文中出现的关键词：「必须」（MUST）、「不得」（MUST NOT）、
-   「必要」（REQUIRED）、「允许」（SHALL）、「不允许」（SHALL NOT）、
-   「应当」（SHOULD）、「不应当」（SHOULD NOT）、
-   「建议」（RECOMMENDED）、「不建议」（NOT RECOMMENDED）、
-   「可以」（MAY）和「可选的」（OPTIONAL），当且仅当以上述形式出现时，
-   需按照 BCP 14 [RFC 2119] [RFC 8174] 中的要求释义。
-   （译注：英文原文中的描述是“in all capitals”，中文中没法体现出大写，
-   因此我将这些词以传统单引号「」引用起来，并在其后补充原文所使用的
-   大写英文单词。需要注意的是，为了行文连贯和语句通顺，可能使用
-   相同含义的词替换「」中的中文词语。）
+   本文中出现的关键词：“MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、
+   “SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、
+   “NOT RECOMMENDED”、“MAY”和“OPTIONAL”，在以全大写形式出现的情况下，
+   需参照 BCP 14 [RFC2119] [RFC8174] 解释其含义。
+   （译注：在本翻译版本中，采取传统单引号“「」”与括号“（）”形式，
+           传统引号中是含义相同或近似的中文词汇，括号中是此处提到的
+           全大写形式英文关键词。）
 
-   Values expressed as u(n) represent an unsigned big-endian integer
-   using n bits.  Values expressed as s(n) represent a signed big-endian
-   integer using n bits, signed two's complement.  Where necessary, n is
-   expressed as an equation using * (multiplication), / (division), +
-   (addition), or - (subtraction).  An inclusive range of the number of
-   bits expressed is represented with an ellipsis, such as u(m...n).
    以 u(n) 书写的值表示一个 n 位的大端序无符号整数。以 s(n) 书写的值表示
    一个 n 位的大端序有符号整数，或称有符号位的二进制补码。必要时，n 会以
-   方程式形式书写，其表达式中包含 *（乘法符号）、/（除法符号）、
-   +（加法符号）或 -（减法符号）。包含位数范围的书写形式以省略号表示，
+   方程形式书写，其表达式中包含 *（乘法符号）、/（除法符号）、
+   +（加法符号）或 -（减法符号）。表示位数范围的书写形式以省略号表示，
    例如 u(m...n)。
 
-   All shifts mentioned in this document are arithmetic shifts.
    本文中提到的所有移位运算均为算术移位。
    （译注：算术移位中，左移补 0：0011 << 1 == 0110；
-   右移补最高位：1010 >> 1 == 1101。）
+           右移补最高位：1010 >> 1 == 1101。）
 
-   While the FLAC format can store digital audio as well as other
-   digital signals, this document uses terminology specific to digital
-   audio.  The use of more generic terminology was deemed less clear, so
-   a reader interested in non-audio use of the FLAC format is expected
-   to make the translation from audio-specific terms to more generic
-   terminology.
-   FLAC 格式所能存储的数据不限于数字音频，其他数字信号也可以使用此格式
-   存储，尽管如此，本文中所使用的术语将限定为数字音频领域。由于使用更为
-   通用的术语进行表述会被认为不够清晰，请对将 FLAC 格式应用于非音频领域
-   感兴趣的读者自行转换为更通用的术语。
+   虽然 FLAC 格式能够存储数字音频和其他数字信号，但在本文中所使用的术语
+   将限定为数字音频领域。使用更加通用的术语会令表述不够清晰，因此，
+   请对非音频数字信号应用 FLAC 感兴趣的读者自行将本文中的术语转换为
+   更通用的术语。
 
 3.  定义
 
-   *Lossless compression*：Reducing the amount of computer storage
-      space needed to store data without needing to remove or
-      irreversibly alter any of this data in doing so.  In other words,
-      decompressing losslessly compressed information returns exactly
-      the original data.
-   *无损压缩*：减少存储数据所需要的计算机存储空间，同时避免破坏数据或
-      不可逆转地改变原有数据。换句话说就是：无损压缩的数据经过解压后
-      得到的数据与原始数据完全一致。
+   『无损压缩』（Lossless compression）：减少存储数据所需要的
+      计算机存储空间，同时避免破坏数据或不可逆转地改变原有数据。
+      换句话说就是，无损压缩的数据经过解压后得到的数据与原始数据
+      完全一致。
 
-   *Lossy compression*:  Like lossless compression, but instead
-      removing, irreversibly altering, or only approximating information
-      for the purpose of further reducing the amount of computer storage
-      space needed.  In other words, decompressing lossy compressed
-      information returns an approximation of the original data.
-   *有损压缩*：与无损压缩类似，但会破坏数据、不可逆转地改变原有数据，
-      或是存储原有数据的近似值以更进一步地减少存储空间大小。换句话说，
-      有损压缩的数据经过解压后得到的数据只是原有数据的近似。
+   『有损压缩』（Lossy compression）：与无损压缩类似，但会破坏数据或
+      不可逆转地改变原有数据，又或是为进一步减少存储空间而仅仅对原有数据
+      取近似值。换句话说就是，有损压缩的数据经过解压后得到的数据只是
+      原有数据的近似。
 
-   *Block*:  A (short) section of linear PCM audio with one or more
-      channels.
-   *数据块*：一（小）段包含一个或多个通道的线性脉冲调制编码音频数据。
+   『块』（Block）：一（小）段包含一个或多个声道的
+      线性脉冲编码调制的音频数据。
 
-   *Subblock*:  All samples within a corresponding block for one
-      channel.  One or more subblocks form a block, and all subblocks in
-      a certain block contain the same number of samples.
-   *子数据块*：单个通道中的一个数据块中所有的采样信号。某个数据块中的
-      一个或多个子数据块，以及某个确定的数据块中的所有子数据块都包含
-      相同数量的采样信号。
+   『子块』（Subblock）：一个相应的块中编码一个声道的所有采样信号。块由
+      一个或多个子块组成，一个块中的所有子块都包含相同数量的采样信号。
 
-   *Frame*:  A frame header, one or more subframes, and a frame footer.
-      It encodes the contents of a corresponding block.
-   *数据帧*：由数据帧头部、一个或多个子数据帧，以及数据帧尾部组成。
-      数据帧是对应的数据块内容的编码结果。
+   『帧』（Frame）：一个帧由帧头、一个或多个子帧，以及帧尾组成。帧编码了
+      其相应的块的内容。
 
-   *Subframe*:  An encoded subblock.  All subframes within a frame code
-      for the same number of samples.  When interchannel decorrelation
-      is used, a subframe can correspond to either the (per-sample)
-      average of two subblocks or the (per-sample) difference between
-      two subblocks, instead of to a subblock directly; see Section 4.2.
-   *子数据帧*：一个编码后的子数据块。一个数据帧内的所有子数据帧都编码
-      相同数量的采样信号。如果应用了通道间去相关性，那么每个子帧所对应的
-      要么是两个子数据块（每个采样信号）的平均值，要么是两个子数据块
-      （每个采样信号）的差值，而非直接对应一个子数据块，参见第 4.2 节。
+   『子帧』（Subframe）：一个已编码的子块。一个帧内的所有子帧都编码了
+      相同数量的采样信号。如果编码时采用了声道间去相关
+      （Interchannel decorrelation），那么一个子帧所对应的要么是两个子块
+      中每个采样的平均值，要么是两个子块中每个采样的差值，而非直接对应
+      一个子块；详情参见第 4.2 节。
 
-   *Interchannel samples*:  A sample count that applies to all channels.
-      For example, one second of 44.1 kHz audio has 44100 interchannel
-      samples, meaning each channel has that number of samples.
-   *通道间采样信号*：应用到所有通道的采样数量。例如，采样率为 44.1 kHz
-      的一秒钟长度的音频包含了 44100 个通道间采样信号，意味着每个通道
-      都有这个数量的采样信号。
+   『声道间采样』（Interchannel samples）：每个声道所包含的采样数量。
+      举个例子，一秒钟长的采样率为 44.1 kHz 的音频包含了 44100 个
+      声道间采样，那么每个声道所包含的采样数量都是这么多。
 
-   *Block size*:  The number of interchannel samples contained in a
-      block or coded in a frame.
-   *数据块大小*：一个数据块或一个编码数据帧中包含的通道间采样信号数量。
+   『块大小』（Block size）：一个块中所包含的声道间采样数量或一个帧
+      所编码的声道间采样数量。
 
-   *Bit depth* or *bits per sample*:  The number of bits used to contain
-      each sample.  This MUST be the same for all subblocks in a block
-      but MAY be different for different subframes in a frame because of
-      interchannel decorrelation.  (See Section 4.2 for details on
-      interchannel decorrelation.)
-   *位深度*或*采样分辨率*：存储每个采样信号所需要使用的比特数。
-      一个数据块中的所有子数据块都「必须」（MUST）有相同的位深度，但对于
-      一个数据帧中的不同子数据帧而言，位深度「可以」（MAY）不同，
-      因为通道间去相关性导致了这一点。（有关通道间去相关性的详细内容
-      请参见第 4.2 节。）
+   『位深度』（Bit depth）或『每采样比特数』（bits per sample）：存储
+      一个采样信号所使用的比特数。对于块而言，其所有子块的位深度都
+      「必须」（MUST）是相同的，但对于帧内的不同子帧而言，由于
+      声道间去相关的存在，其位深度「可以」（MAY）不同。
+      （声道间去相关的详细内容请参见第 4.2 节。）
 
-   *Predictor*:  A model used to predict samples in an audio signal
-      based on past samples.  FLAC uses such predictors to remove
-      redundancy in a signal in order to be able to compress it.
-   *预测模型*：根据之前采样信号来预测后续音频采样信号的一种数学模型。
-      FLAC 使用这种预测模型剔除信号中的冗余以完成对信号的压缩。
+   『预测器』（Predictor）：音频信号中根据先前的采样对后续采样进行预测的
+      一种数学模型。FLAC 使用这种预测器剔除信号中的数据冗余以实现压缩。
 
-   *Linear predictor*:  A predictor using linear prediction (see
-      [LinearPrediction]).  This is also called *linear predictive
-      coding (LPC)*. With a linear predictor, each prediction is a
-      linear combination of past samples (hence the name).  A linear
-      predictor has a causal discrete-time finite impulse response (see
-      [FIR]).
-   *线性预测模型*：使用线性预测的预测模型（参见维基百科中的
-      “线性预测（Linear Prediction）”）。这种模型的另一个名称是：
-      *线性预测编码（Linear Predictive Coding, LPC）*。
-      顾名思义，线性预测模型的预测结果是之前采样信号的线性组合。
-      线性预测模型有着因果性、时间离散型有限冲激响应的特性（参见
-      维基百科中的“有限冲激响应（Finite Impulse Response, FIR）”）。
+   『线性预测器』（Linear predictor）：采用线性预测的预测器（参见
+      [LinearPrediction]），也被称为『线性预测编码』
+      （Linear Predictive Coding, LPC）。线性预测器的预测结果通过先前
+      采样的线性组合运算得到（正如其名）。线性预测器有着因果性、
+      时域离散型有限冲激响应的特征（参见 [FIR]）。
+      （译注：原文是“A linear predictor has a causal discrete-time
+              finite impulse response.”）
 
-   *Fixed predictor*:  A linear predictor in which the model parameters
-      are the same across all FLAC files and thus do not need to be
-      stored.
-   *恒定预测模型*：对所有 FLAC 文件均使用相同模型参数的线性预测模型，
-      因其参数恒定不变，所以无需存储。
+   『固定预测器』（Fixed predictor）：也是一种线性预测器，但其模型参数
+      在所有 FLAC 文件应用中都相同，因此在应用此预测器时无需存储其参数。
 
-   *Predictor order*:  The number of past samples that a predictor uses.
-      For example, a 4th order predictor uses the 4 samples directly
-      preceding a certain sample to predict it.  In FLAC, samples used
-      in a predictor are always consecutive and are always the samples
-      directly before the sample that is being predicted.
-   *预测模型的阶数*：预测模型所使用的之前的采样信号的数量。例如一个
-      4 阶的预测模型在预测一个确定的采样信号时，会使用此信号之前的
-      4 个连续的采样信号进行预测。在 FLAC 的语境下，预测模型中所使用的
-      采样信号总是待预测采样信号之前的几个连续的采样信号。
+   『预测器的阶』（Predictor order）：预测器所使用的先前的采样的数量。
+      举个例子，一个 4 阶的预测器在对某个采样进行预测时，会使用其先前的
+      4 个采样进行计算。FLAC 中的预测器所使用的采样总是位于待预测采样
+      之前的多个连续的采样。
 
-   *Residual*:  The audio signal that remains after a predictor has been
-      subtracted from a subblock.  If the predictor has been able to
-      remove redundancy from the signal, the samples of the remaining
-      signal (the *residual samples*) will have, on average, a numerical
-      value closer to zero than the original signal.
-   *残余*：从一个子数据块中减去一个预测模型的预测结果后留下的音频信号。
-      如果预测模型成功地从信号中剔除了冗余数据，那么留下来的信号（即
-      *残余采样信号*）就会在数值上相比原始数据更接近 0（平均而言）。
+   『残差』（Residual）：从一个子块中减去预测器的预测结果后的剩余值。
+      如果预测器成功地从信号中剔除了冗余数据，那么留下来的信号，即
+      『采样残差』（Residual samples）就会在平均值上，相比原始信号
+      在数值上更接近 0。
 
-   *Rice code*:  A variable-length code (see [VarLengthCode]).  It uses
-      a short code for samples close to zero and a progressively longer
-      code for samples further away from zero.  This makes use of the
-      observation that residual samples are often close to zero.
-   *Rice 编码*：一种可变长度编码（参见维基百科上的“可变长度编码”）。
-      此编码对接近 0 的采样信号使用短编码，并根据采样信号与 0 的偏移值的
-      大小，逐渐对偏移值更大的采样信号使用更长的编码。这种方式利用了
-      残余样本常常接近 0 的观测结果。
+   『Rice 编码』（Rice code）：一种可变长度编码（参见
+      [VarLengthCode]）。此编码对接近 0 的采样值采用短编码，并逐步对
+      距 0 更远的采样值采用更长的编码。这种方式利用了采样残差通常
+      接近 0 的观测结果。
 
-   *Muxing*:  Short for multiplexing.  Combining several streams or
-      files into a single stream or file.  In the context of this
-      document, muxing specifically refers to embedding a FLAC stream in
-      a container as described in Section 10.
-   *信号复用*：简称“复用”。指将多个音频信号流或音频文件合成单一的
-      音频信号流或音频文件。在本文的上下文中，复用特指将流式 FLAC 嵌入到
-      一个容器中，如第 10 节中所述。
+   『复用』（Muxing）：“Multiplexing” 的简写。指将多个独立的音频流或文件
+      合成为一个音频流或文件。在本文的语境下，特指将一个 FLAC 格式的
+      音频流嵌入到一个容器中，相关概念在第 10 节中有描述。
 
-4.  概念一览
+4.  概念总览
 
-   Similar to many other audio coders, a FLAC file is encoded following
-   the steps below.  To decode a FLAC file, these steps are performed in
-   reverse order, i.e., from bottom to top.
-   FLAC 文件的编码过程与其他的音频编码器类似，编码步骤如下文所示。
+   FLAC 文件的编码过程与其他的音频编解码器类似，编码步骤如下所示。
    FLAC 的解码过程与编码过程刚好相反。
 
-   1.  *Blocking* (see Section 4.1).  The input is split up into many
-       contiguous blocks.
-       *数据分块*（参见第 4.1 节）。输入信号被分割成许多连续的数据块。
+   1.  『分块』（Blocking），参见第 4.1 节。
+       分块是指将输入信号分割成多个连续的块。
 
-   2.  *Interchannel Decorrelation* (see Section 4.2).  In the case of
-       stereo streams, the FLAC format allows for transforming the left-
-       right signal into a mid-side signal, a left-side signal, or a
-       side-right signal to remove redundancy between channels.
-       Choosing between any of these transformations is done
-       independently for each block.
-       *通道间去相关性*（参见第 4.2 节）。在立体声音频流的场景下，
-       FLAC 格式可将左侧和右侧的信号转换为中心信号、左侧信号或
-       右侧信号以剔除通道之间的冗余数据。对于每一个数据块而言，
-       转换方式的选择是相互独立的。
+   2.  『声道间去相关』（Interchannel Decorrelation），参见第 4.2 节。
+       对于立体声音频流，左右声道可被转换为中声道和边声道、
+       左声道和边声道或边声道和右声道以剔除声道之间的冗余。每个块
+       所采用的转换方式都是独立决定的。
 
-   3.  *Prediction* (see Section 4.3).  To remove redundancy in a
-       signal, a predictor is stored for each subblock or its
-       transformation as formed in the previous step.  A predictor
-       consists of a simple mathematical description that can be used,
-       as the name implies, to predict a certain sample from the samples
-       that preceded it.  As this prediction is rarely exact, the error
-       of this prediction is passed on to the next stage.  The predictor
-       of each subblock is completely independent from other subblocks.
-       Since the methods of prediction are known to both the encoder and
-       decoder, only the parameters of the predictor need to be included
-       in the compressed stream.  If no usable predictor can be found
-       for a certain subblock, the signal is stored uncompressed, and
-       the next stage is skipped.
-       *预测*（参见第 4.3 节）。要从信号中剔除冗余数据，应当为每一个
-       子数据块或是其通过上一步转换而成的结果保存一个预测模型。预测模型
-       由一份简单的数学描述组成，这份描述用于预测一个确定的采样信号，
-       预测过程使用的是这个待预测采样信号之前的几个采样信号。
-       由于预测的结果往往不准确，此次预测的误差将会被传递到下一个步骤。
-       每个子数据块的预测模型互相之间完全独立。而因为编码器或解码器都能
-       正确地处理预测模型，压缩后的流式音频信号中只需要存储预测模型的
-       参数，不需要保存预测模型。如果某个确定的子数据块没有对应可用的
-       预测模型，该子数据块对应的数字信号将按原样保存，不进行压缩，同时
-       跳过下一个步骤。
+   3.  『预测』（Prediction），参见第 4.3 节。
+       要从信号中剔除冗余数据，应为每个子块或其通过上一步转换而成的形式
+       保存所用预测器的相关信息。预测器由简单的数学描述组成，并用于预测
+       某个采样，预测过程会使用这个待预测采样之前的几个采样。
+       由于预测的结果往往不准确，此次预测的误差将会被传递到下一个步骤
+       进一步处理。每个子块所用的预测器互相之间完全独立。而由于预测器
+       对于编解码器而言都是已知的，压缩后的数据中只需要存储预测模型的
+       参数即可。如果编码器无法找到适用于某个子块的预测器，则该信号
+       将按原样保存，不进行压缩，同时跳过下一个步骤。
 
-   4.  *Residual Coding* (see Section 4.4).  As the predictor does not
-       describe the signal exactly, the difference between the original
-       signal and the predicted signal (called the error or residual
-       signal) is coded losslessly.  If the predictor is effective, the
-       residual signal will require fewer bits per sample than the
-       original signal.  FLAC uses Rice coding, a subset of Golomb
-       coding, with either 4-bit or 5-bit parameters to code the
-       residual signal.
-       *残余编码*（参见第 4.4 节）。由于预测的信号不会与原始信号完全
-       一致，产生的偏差值会被无损地编码（此偏差值也被称为误差或残余）。
-       如果预测模型是有效的，那么残余信号所需要的采样分辨率会比原始信号
-       更少。FLAC 使用 Rice 编码对残余进行编码，这是 Golomb 编码的一个
-       子集，通常使用 4 或 5 位长度的参数去编码残余信号。
+   4.  『编码残差』（Residual Coding），参见第 4.4 节。
+       由于预测器不能毫无偏差地表示原始信号，原始值与预测值之差
+       （也被称为误差或信号残差）就需要被无损地编码并保存。
+       假设预测器有效的，那么信号残差的位深度会比原始信号更小。
+       FLAC 采用 Golomb 编码的一个子集：Rice 编码，对残差进行编码。
+       该编码使用 4 位 或 5 位长度的参数。
 
-   In addition, FLAC specifies a metadata system (see Section 8) that
-   allows arbitrary information about the stream to be included at the
-   beginning of the stream.
-   此外，FLAC 定义了一套元数据体系（参见第 8 节），该元数据体系允许在
-   FLAC 文件或数据流的头部存储任意的相关信息。
+   此外，FLAC 还定义了一套元数据体系（参见第 8 节），可在 FLAC 文件的
+   起始位置存储与此文件相关的任意信息。
 
-4.1.  数据分块
+4.1.  分块
 
-   The block size used for audio data has a direct effect on the
-   compression ratio.  If the block size is too small, the resulting
-   large number of frames means that a disproportionate number of bytes
-   will be spent on frame headers.  If the block size is too large, the
-   characteristics of the signal may vary so much that the encoder will
-   be unable to find a good predictor.  In order to simplify encoder/
-   decoder design, FLAC imposes a minimum block size of 16 samples,
-   except for the last block, and a maximum block size of 65535 samples.
-   The last block is allowed to be smaller than 16 samples to be able to
-   match the length of the encoded audio without using padding.
-   数据块的大小直接影响压缩率。数据块过小将导致大量不成比例的数据字节
-   消耗在数据帧头部中。数据块过大将导致信号特征变化过大，从而令编码器
-   难以、甚至无法生成合适的预测模型。为简化编码器和解码器的设计，FLAC
-   格式中强制要求每个数据块的大小最小不能少于 16 个采样信号，最大不能
-   大于 65535 个采样信号；但允许例外情况：最后一个数据块的大小可以小于
-   16 个采样信号，原因是这么做可以在不使用数据填充的情况下令数据块与
-   编码后的音频数据长度相匹配。
+   音频数据的块大小对压缩率有着直接的影响。块过小产生的大量帧意味着帧头
+   会占用大量与音频数据不相称的存储空间。而块过大，块中的信号特征又可能
+   相去甚远，导致编码器难以找到合适的预测器。因此，为简化编解码器的
+   设计，FLAC 强制规定，除了最后一个块以外，其余的块的大小最小不得少于
+   16 个采样，而所有的块的大小最大不得超过 65535 个采样。之所以允许
+   最后一个块的大小少于 16 个采样，是因为这么做可以保证与原始音频的
+   采样数量保持一致而无需使用额外的比特进行填充。
 
-   While the block size does not have to be constant in a FLAC file, it
-   is often difficult to find the optimal arrangement of block sizes for
-   maximum compression.  Because of this, a FLAC stream has explicitly
-   either a constant or variable block size throughout and stores a
-   block number instead of a sample number to slightly improve
-   compression if a stream has a constant block size.
-   虽然在 FLAC 文件中，数据块的大小不必是一个恒定值，但要达到最佳的
-   压缩效果，需要精心安排数据块的大小，这往往非常困难。正因如此，FLAC
-   明确要求其流式信号中始终使用恒定大小的数据块，然后通过存储数据块数量
-   （而非采样信号数量）以略微提升压缩效果。
+   尽管没有要求 FLAC 文件中的块大小保持不变，但要达到最佳的压缩效果，
+   就需要精心调整和优化块大小，这往往非常困难。正因如此，FLAC 明确采用
+   不变大小的块或可变大小的块；假如采用了不变大小的块，就可以存储块数量
+   （而非存储采样数量，因为块大小不变）以略微提升压缩效果。
 
-4.2.  通道间去相关性
+4.2.  声道间去相关
 
-   Channels are correlated in many audio files.  The FLAC format can
-   exploit this correlation in stereo files by coding an average of all
-   samples in both subblocks (a mid channel) or the difference between
-   all samples in both subblocks (a side channel) instead of directly
-   coding subblocks into subframes.  The following combinations are
-   possible:
-   许多音频文件的通道之间都有相关性。通过编码两侧子数据块（中心通道）中
-   所有采样信号的平均值，或两侧子数据块（侧通道）中所有采样信号的差值，
-   而非直接将子数据块编码为子数据帧，FLAC 格式就能够对立体声音频文件中
-   的通道相关性加以利用。有以下几种编码组合：
+   许多音频文件的声道之间都是相关的。对于立体声，通过编码其两个子块中
+   所有采样的平均值（中声道）或差值（边声道）就能够利用其声道的相关性，
+   直接将两个子块编码为子帧则无法利用其相关性。下面是一些可能的组合：
 
-   *  *Independent*. All channels are coded independently.  All non-
-      stereo files MUST be encoded this way.
-      *独立编码*：所有通道的编码过程均为独立进行。所有非立体声音频文件
-      「必须」（MUST）以这种方式进行编码。
+   *  『相互独立』（Independent）：对所有声道独立编码。所有的非立体声
+      音频文件「必须」（MUST）以这种方式进行编码。
 
-   *  *Mid-side*. A left and right subblock are converted to mid and
-      side subframes.  To calculate a sample for a mid subframe, the
-      corresponding left and right samples are summed, and the result is
-      shifted right by 1 bit.  To calculate a sample for a side
-      subframe, the corresponding right sample is subtracted from the
-      corresponding left sample.  On decoding, all mid channel samples
-      have to be shifted left by 1 bit.  Also, if a side channel sample
-      is odd, 1 has to be added to the corresponding mid channel sample
-      after it has been shifted left by 1 bit.  To reconstruct the left
-      channel, the corresponding samples in the mid and side subframes
-      are added and the result shifted right by 1 bit.  For the right
-      channel, the side channel has to be subtracted from the mid
-      channel and the result shifted right by 1 bit.
-      *中心通道与侧通道编码*：将左右通道的数据子块转换为中心通道和侧通道
-      的子数据帧。中心通道的子数据帧采样信号数值由左右通道的采样信号数值
-      之和，再右移 1 位得到。侧通道的子数据帧采样信号数值由左侧通道的
-      采样信号数值减去右侧通道的采样信号数值得到。解码时，中心通道内的
-      所有采样信号需要左移 1 位（对应编码过程的右移），同时，如果侧通道
-      的采样信号数值是奇数，那么对应的中心通道内的采样信号数值在左移位后
-      还需要加 1。接下来是左右通道的信号还原：左侧通道的信号由中心通道和
-      侧通道的子数据帧相加，再右移 1 位得到；右侧通道的信号由中心通道
-      减去侧通道，再左移 1 位得到。
+   *  『中声道和边声道』（Mid-side）：将左右声道的子块转换为
+      中声道和边声道子帧。中声道子帧所需的采样通过对应的左右声道的
+      采样相加，再右移 1 位得到。边声道子帧所需的采样通过将对应
+      左声道的采样减去右声道的采样得到。解码时，中声道的所有采样都需要
+      先左移 1 位（以逆向编码时的右移）；假如一个边通道的采样是奇数，
+      那么其对应的中声道的采样还需要加 1。重建左声道的过程是将
+      中声道和边声道相对应的子帧相加，再右移 1 位。重建右声道的过程是将
+      中声道子帧减去边声道对应子帧，再右移 1 位。
 
-   *  *Left-side*. The left subblock is coded, and the left and right
-      subblocks are used to code a side subframe.  The side subframe is
-      constructed in the same way as for mid-side.  To decode, the right
-      subblock is restored by subtracting the samples in the side
-      subframe from the corresponding samples in the left subframe.
-      *左侧通道与侧通道差值编码*：左侧通道的子数据块单独编码，然后使用
-      和“中心通道与侧通道编码”中一样的方式编码侧通道中的数据。解码时，
-      左侧通道直接解码，右侧通道的信号需通过左侧通道减去侧通道还原。
+   *  『左声道和边声道』（Left-side）：先编码左声道的子块，然后将
+      左右声道的子块编码为边声道子帧。边声道子帧的构建方式与
+      中声道和边声道中边声道的构建方式相同。解码时，右声道子块的还原过程
+      是将左声道的子帧减去边声道的子帧。
 
-   *  *Side-right*. The left and right subblocks are used to code a side
-      subframe, and the right subblock is coded.  The side subframe is
-      constructed in the same way as for mid-side.  To decode, the left
-      subblock is restored by adding the samples in the side subframe to
-      the corresponding samples in the right subframe.
-      *侧通道差值与右侧通道编码*：先按照“中心通道与侧通道编码”中的方式
-      编码侧通道，然后单独编码右侧通道的信号。解码时，右侧通道直接解码，
-      左侧通道的信号需通过将右侧通道与侧通道相加还原。
+   *  『边声道和右声道』（Side-right）：将左右声道的子块编码为边声道的
+      子帧，然后编码右声道的子块。边通道子帧的构建方式与中声道和边声道中
+      边声道的构建方式相同。解码时，左声道子块的还原过程是将边声道子帧与
+      右声道相对应的子帧相加。
 
    The side channel needs one extra bit of bit depth, as the subtraction
    can produce sample values twice as large as the maximum possible in
@@ -806,7 +595,7 @@ ISSN: 2070-1721                                            December 2024
    *  One of the forbidden bit patterns described in Table 1 is used.
       使用了表格 1 中所列出的禁止使用的字段。
 
-6.  格式布局一览
+6.  格式布局总览
 
    A FLAC bitstream consists of the fLaC (i.e., 0x664C6143) marker at
    the beginning of the stream, followed by a mandatory metadata block
