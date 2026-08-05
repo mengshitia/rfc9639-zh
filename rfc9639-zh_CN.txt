@@ -1,4 +1,4 @@
-﻿本文是 RFC 9639 的简体中文翻译，个人翻译。
+﻿本文是 RFC 9639 的简体中文翻译。
 翻译提供者：梦石（mengshitia@gmail.com）
 
 
@@ -167,7 +167,7 @@ ISSN: 2070-1721                                            December 2024
    需参照 BCP 14 [RFC2119] [RFC8174] 解释其含义。
    （译注：在本翻译版本中，采取传统单引号“「」”与括号“（）”形式，
            传统引号中是含义相同或近似的中文词汇，括号中是此处提到的
-           全大写形式英文关键词。）
+           全大写形式英文关键词，例如：「必须」（MUST）。）
 
    以 u(n) 书写的值表示一个 n 位的大端序无符号整数。以 s(n) 书写的值表示
    一个 n 位的大端序有符号整数，或称有符号位的二进制补码。必要时，n 会以
@@ -176,7 +176,7 @@ ISSN: 2070-1721                                            December 2024
    例如 u(m...n)。
 
    本文中提到的所有移位运算均为算术移位。
-   （译注：算术移位中，左移补 0：0011 << 1 == 0110；
+   （译注：算术移位时，左移补 0：0011 << 1 == 0110；
            右移补最高位：1010 >> 1 == 1101。）
 
    虽然 FLAC 格式能够存储数字音频和其他数字信号，但在本文中所使用的术语
@@ -301,7 +301,7 @@ ISSN: 2070-1721                                            December 2024
    采样数量保持一致而无需使用额外的比特进行填充。
 
    尽管没有要求 FLAC 文件中的块大小保持不变，但要达到最佳的压缩效果，
-   就需要精心调整和优化块大小，这往往非常困难。正因如此，FLAC 明确采用
+   就需要寻找最优的块大小，其过程往往非常困难。因此，FLAC 明确采用
    不变大小的块或可变大小的块；假如采用了不变大小的块，就可以存储块数量
    （而非存储采样数量，因为块大小不变）以略微提升压缩效果。
 
@@ -333,423 +333,234 @@ ISSN: 2070-1721                                            December 2024
       边声道的构建方式相同。解码时，左声道子块的还原过程是将边声道子帧与
       右声道相对应的子帧相加。
 
-   The side channel needs one extra bit of bit depth, as the subtraction
-   can produce sample values twice as large as the maximum possible in
-   any given bit depth.  The mid channel in mid-side stereo does not
-   need one extra bit, as it is shifted right 1 bit.  The right shift of
-   the mid channel does not lead to lossy behavior because an odd sample
-   in the mid subframe must always be accompanied by a corresponding odd
-   sample in the side subframe, which means the lost least-significant
-   bit can be restored by taking it from the sample in the side
-   subframe.
-   侧通道需要额外的一个比特位用于表示位深度，原因是相减后的结果在任意的
-   位深度下都可能是其该位深度所能表示的最大值的两倍大。例外情况是
-   “中心通道与侧通道编码”方式中的中心通道，因其已经右移 1 位，所以不需要
-   额外的比特位。中心通道编码时的右移不会造成数据损失，因为中心通道内的
-   子数据帧中数值为奇数的采样信号总会有一个对应的侧通道中同样为奇数的
-   采样信号，这意味着移位造成的最低有效位丢失可以通过侧通道还原。
+   边声道中采样的位深度需要一个额外的比特，原因是减法运算后的结果在
+   任意的位深度下都可能是该位深度所能表示的最大正数或负数的两倍大。
+   而中声道和边声道中的中声道采样因其编码过程中已经右移 1 位，因此无需
+   额外的比特；同时右移并不会导致数据损失，因为中声道子帧中的奇数采样值
+   总会在边声道子帧中有一个对应的奇数采样值，这意味着中声道子帧中的
+   奇数采样值经右移后丢失的最低有效位可以通过边声道子帧中的采样还原。
 
 4.3.  预测
 
-   The FLAC format has four methods for modeling the input signal:
    FLAC 格式提供 4 种对输入信号进行建模的方式：
 
-   1.  *Verbatim*. Samples are stored directly, without any modeling.
-       This method is used for inputs with little correlation.  Since
-       the raw signal is not actually passed through the residual coding
-       stage (it is added to the stream "verbatim"), this method is
-       different from using a zero-order fixed predictor.
-       *Verbatim*：不对采样信号进行任何建模，直接保存。这种方式适用于
-       含有极少相关性的输入信号。由于原始信号实际上不会经历残余编码的
-       步骤（信号会被添加到“Verbatim”流中），这种方式与固定使用 0 阶的
-       固定预测模型有所不同。
+   1.  『Verbatim』。不进行任何建模，直接存储采样。这种方式适用于采样
+       无相关性或相关性极小的输入信号。由于原始信号实际上不会经过
+       编码残差的步骤（直接将其添加到『Verbatim』流），这种方式与采用了
+       0 阶固定预测器的方式是不同的。
+       （译注：采用了预测就会产生残差，也就需要对残差进行编码；而
+               『Verbatim』方式直接将采样按原样保存，没有编码残差的
+               过程，这就是两者的区别。）
 
-   2.  *Constant*. A single sample value is stored.  This method is used
-       whenever a signal is pure DC ("digital silence"), i.e., a
-       constant value throughout.
-       *恒定值*：只存储一个采样信号的值。这种方式应用于纯直流信号（即
-       “数字上的完全静音”）上，例如信号自始至终都是恒定值的时候。
+   2.  『常量』（Constant）。只存储单个采样值。在信号数值全程不变时
+       应采用这种建模方式。这样的信号通常类似纯 DC，也被称为
+       『数字静音』（Digital silence）。
 
-   3.  *Fixed predictor*. Samples are predicted with one of five fixed
-       (i.e., predefined) predictors, and the error of this prediction
-       is processed by the residual coder.  These fixed predictors are
-       well suited for predicting simple waveforms.  Since the
-       predictors are fixed, no predictor coefficients are stored.  From
-       a mathematical point of view, the predictors work by
-       extrapolating the signal from the previous samples.  The number
-       of previous samples used is equal to the predictor order.  For
-       more information, see Section 9.2.5.
-       *恒定预测模型*：采样信号的预测由 5 个确定的预测模型（或称
-       预先定义好的预测模型）中的 1 个来完成，预测结果与实际信号的误差
-       由残余编码器完成进一步的处理。恒定预测模型非常适合预测简单的波形
-       信号，也无需保存任何预测模型系数。从数学的角度上来看，预测模型是
-       根据之前已有的采样信号推断出之后的某个采样信号。预测所使用的已有
-       信号数量等于预测模型的阶数。更多信息请参见第 9.2.5 节。
+   3.  『固定预测器』（Fixed predictor）。采样信号的预测由 5 个
+       固定（或称“预定义的”）预测器中的 1 个来完成，预测产生的误差值
+       由残差编码器进行进一步的处理。固定预测器非常适合预测波形简单的
+       信号。由于预测器是固定的，也就无需保存任何预测器系数。从数学的
+       角度来看，预测器的工作原理是通过某个采样的前几个采样推断得出
+       该采样的估值。预测器使用的先前的采样数量等于该预测器的阶。
+       更多相关信息请参见第 9.2.5 节。
 
-   4.  *Linear predictor*. Samples are predicted using past samples and
-       a set of predictor coefficients, and the error of this prediction
-       is processed by the residual coder.  Compared to a fixed
-       predictor, using a generic linear predictor adds overhead as
-       predictor coefficients need to be stored.  Therefore, this method
-       of prediction is best suited for predicting more complex
-       waveforms, where the added overhead is offset by space savings in
-       the residual coding stage resulting from more accurate
-       prediction.  A linear predictor in FLAC has two parameters
-       besides the predictor coefficients and the predictor order: the
-       number of bits with which each coefficient is stored (the
-       coefficient precision) and a prediction right shift.  A
-       prediction is formed by taking the sum of multiplying each
-       predictor coefficient with the corresponding past sample and
-       dividing that sum by applying the specified right shift.  For
-       more information, see Section 9.2.6.
-       *线性预测模型*：信号的预测是基于已知的采样信号和一系列的预测模型
-       系数来完成，预测结果与实际信号的误差又由残余编码器处理。与恒定
-       预测模型相比，通用的线性预测模型在存储预测模型系数上是一笔额外的
-       开销。因此这种预测模型最适合预测更复杂的信号类型。更精确的预测
-       结果降低了残余编码阶段的空间开销，抵消了存储预测模型系数所产生的
-       空间开销。FLAC 中的线性预测模型参数除了预测模型系数和预测模型阶数
-       以外还有两个参数：预测模型系数的精度和预测结果的右移位数；
-       预测结果通过将每个预测模型的系数与相应的之前样本相乘，并右移
-       指定位数（作为除法）得到。更多信息请参见第 9.2.6 节。
+   4.  『线性预测器』（Linear predictor）。采样信号的预测过程基于
+       先前的几个采样信号和一组预测器系数，预测产生的误差值由残差编码器
+       进行进一步的处理。与固定预测器相比，通用线性预测器需要存储
+       预测器系数，这是一笔额外的空间开销。因此，线性预测器最适合用于
+       波形更加复杂的信号，这样一来，更精确的预测结果降低了残差编码阶段
+       的空间开销，从而抵消了存储预测器系数造成的空间开销。FLAC 中的
+       线性预测器除了预测器系数和阶数之外还有两个参数，分别是：
+       存储每个预测器系数所用的比特数（即系数精度）和预测结果的
+       右移位数。预测结果通过将每个预测模型的系数与相应的之前样本相乘，
+       然后右移指定位数（作为除法）得到。更多相关信息请参见第 9.2.6 节。
 
-   A FLAC encoder is free to select any of the above methods to model
-   the input.  However, to ensure lossless coding, the following
-   exceptions apply:
-   编写 FLAC 编码器时可以选择上述方法中的任何一种对输入信号进行建模。
-   但有下面几种例外情况：
+   FLAC 编码器在对输入信号进行建模时可自由选择上述的任意一种建模方式。
+   然而，为确保编码过程是无损的，遇到以下的情况时选择方式有限：
 
-   *  When the samples that need to be stored do not all have the same
-      value (i.e., the signal is not constant), a constant subframe
-      cannot be used.
-      信号非固定不变，这个时候不能使用恒定值编码子数据帧。
+   *  待存储的多个采样值各不相同时（即这段信号并非常量），不能使用常量
+      方式编码子帧。
 
-   *  When an encoder is unable to find a fixed or linear predictor for
-      which all residual samples are representable in 32-bit signed
-      integers as stated in Section 9.2.7, a verbatim subframe is used.
-      如果遇到第 9.2.7 节中所描述的，所有残余采样信号都可以使用 32 位
-      有符号整数表示，并且编码器无法找到合适的恒定或线性预测模型时，应
-      采用“Verbatim”方式。
+   *  如第 9.2.7 节中所述，如果所有采样的残差值都以 32 位有符号整数表示
+      并且编码器无法找到合适的固定预测器或线性预测器时，应采用 Verbatim
+      方式编码子帧。
 
-   For more information on fixed and linear predictors, see
-   [Lossless-Compression] and [Robinson-TR156].
-   与恒定和线性预测模型的有关信息请参见
-   “无损压缩数字音频（https://ieeexplore.ieee.org/document/939834）”和
-   “Robinson-TR156（译注：链接太长无法排版，请去 rfc 原文查看链接）”。
+   更多有关固定预测器和线性预测器的信息请参见 [Lossless-Compression] 和
+   [Robinson-TR156]。
 
-4.4.  残余编码
+4.4.  编码残差
 
-   If a subframe uses a predictor to approximate the audio signal, a
-   residual is stored to "correct" the approximation to the exact value.
-   When an effective predictor is used, the average numerical value of
-   the residual samples is smaller than that of the samples before
-   prediction.  While having smaller values on average, it is possible
-   that a few "outlier" residual samples are much larger than any of the
-   original samples.  Sometimes these outliers even exceed the range
-   that the bit depth of the original audio offers.
-   如果子帧采用了预测模型尝试对音频信号进行近似取值，就需要存储残余值
-   对这个近似值进行“纠正”，以还原原始信号。如果预测模型非常有效，残余的
-   采样值平均而言将小于原始信号；因此少量的“离群值”相对而言将大得多。
-   这些离群值偶尔还会超出原始音频的采样深度。
+   如果子帧采用了预测器去近似原始音频信号，就需要存储一个将近似值“修正”
+   为实际值的残差值。当子帧所使用的预测器有效时，采样残差值的平均值
+   将小于预测步骤前的采样平均值。虽然残差的平均值更小，但也可能有一些
+   “异常”的采样残差值，这些异常值常常远大于任何原始采样值。有时这些
+   异常值甚至超出了原始音频的位深度所能表示的数值范围。
 
-   To efficiently code such a stream of relatively small numbers with an
-   occasional outlier, Rice coding (a subset of Golomb coding) is used.
-   Depending on how small the numbers are that have to be coded, a Rice
-   parameter is chosen.  The numerical value of each residual sample is
-   split into two parts by dividing it by 2^(Rice parameter), creating a
-   quotient and a remainder.  The quotient is stored in unary form and
-   the remainder in binary form.  If indeed most residual samples are
-   close to zero and a suitable Rice parameter is chosen, this form of
-   coding, with a so-called variable-length code, uses fewer bits than
-   the residual in unencoded form.
+   要高效地编码这些数值相对较小，但又存在偶发异常值的采样，就需要
+   使用 Rice 编码（这是 Golomb 编码的一个子集）。Rice 参数的选择取决于
+   这些数值的大小。将每个采样的残差值除以 2 的 Rice 参数次幂
+   （译注： 记 Rice 参数值为 R，则除数为 2^R。），得到一个商和一个余数。
+   商以一进制形式存储，余数以二进制形式存储。如果大多数采样的残差值都
+   接近 0 并且有适当的 Rice 参数，那么这样的所谓“变长编码”形式所用的
+   比特数将比不编码的残差值更少。
 
-   As Rice codes can only handle unsigned numbers, signed numbers are
-   zigzag encoded to a so-called folded residual.  See Section 9.2.7 for
-   a more thorough explanation.
+   Rice 编码只能用于处理无符号数，有符号数则按照 Zigzag 编码方式编码为
+   所谓的“折叠残差”（Folded residual）。完整的详解请参见第 9.2.7 节。
 
-   Quite often, the optimal Rice parameter varies over the course of a
-   subframe.  To accommodate this, the residual can be split up into
-   partitions, where each partition has its own Rice parameter.  To keep
-   overhead and complexity low, the number of partitions used in a
-   subframe is limited to powers of two.
+   最优的 Rice 参数在一个子帧中经常发生变化。为适应这种变化，可将残差值
+   分区，每个分区都有其自己的 Rice 参数。同时为保证较低的开销和复杂度，
+   每个子帧中的分区数量被限制为 2 的幂次方。
+   （译注：记 Rice 参数表示的值为 R，则分区数量为 2^R 个。）
 
-   The FLAC format uses two forms of Rice coding, which only differ in
-   the number of bits used for encoding the Rice parameter, either 4 or
-   5 bits.
-   FLAC 格式采用两种 Rice 编码格式，这两种编码格式的不同之处只在于处理
-   Rice 编码参数所使用的比特位上，分别是 4 位和 5 位比特位。
+   FLAC 格式采用两种形式的 Rice 编码，这两种编码格式只在编码其参数所用的
+   比特数上有区别，分别是 4 位 和 5 位比特。
 
 5.  格式原则
 
-   FLAC has no format version information, but it does contain reserved
-   space in several places.  Future versions of the format MAY use this
-   reserved space safely without breaking the format of older streams.
-   Older decoders MAY choose to abort decoding when encountering data
-   that is encoded using methods they do not recognize.  Apart from
-   reserved patterns, the format specifies forbidden patterns in certain
-   places, meaning that the patterns MUST NOT appear in any bitstream.
-   They are listed in the following table.
-   FLAC 格式没有版本信息，但还是在特定位置预留了空间。未来发布的 FLAC
-   新格式版本中「有可能」（MAY）会使用这些预留空间，这么做不会影响
-   以旧版本编码的文件和流。旧版本的解码器在读取到采取了其无法识别的
-   编码数据时，「可以」（MAY）终止解码。除了保留字段之外，FLAC 格式还
-   规定了特定位置中禁止使用的字段，意味着这些字段「不得」（MUST NOT）
-   出现在任何比特流中。下面的表格中列出了这些被禁止使用的字段。
+   FLAC 暂时没有版本信息，但还是在一些位置上预留了空间。这么做能让
+   未来发布的「可能」（MAY）使用这些预留空间的新版本 FLAC 格式安全地使用
+   这些预留空间，避免对采用旧版本 FLAC 格式的文件产生影响。旧版本的
+   解码器在读取到采用了其无法识别的方式进行编码数据时，「可以」（MAY）
+   选择终止解码。除了一些保留的模式之外，FLAC 格式还规定了禁止用在
+   特定位置上的模式，意味着这些模式「不得」（MUST NOT）出现。
+   如下表所示。
 
          +=========================================+=============+
          | 描述                                    | 参见        |
          +=========================================+=============+
-         | 在元数据数据块中表示类型的数值中        | 8.1 节      |
-         | 禁止使用 127                            |             |
+         | 元数据块类型 127                        | 第 8.1 节   |
          +-----------------------------------------+-------------+
-         | 在表示数据块大小的最大值和最小值中禁止  | 8.2 节      |
-         | 使用小于 16 位长度的数值                |             |
+         | Streaminfo 元数据块中表示块大小的最大值 | 第 8.2 节   |
+         | 或最小值的字段中出现小于 16 的数值      |             |
          +-----------------------------------------+-------------+
-         | 在表示采样率的位置禁止使用 0b1111       | 9.1.2 节    |
+         | 表示采样率的比特 0b1111                 | 第 9.1.2 节 |
          +-----------------------------------------+-------------+
-         | 罕见数据块大小：65536                   | 9.1.6 节    |
+         | 罕见的块大小 65536                      | 第 9.1.6 节 |
          +-----------------------------------------+-------------+
-         | 表示预测模型系数精度时禁止使用 0b1111   | 9.2.6 节    |
+         | 表示预测器系数精度的比特 0b1111         | 第 9.2.6 节 |
          +-----------------------------------------+-------------+
-         | 预测结果右移位数禁止出现负数            | 9.2.6 节    |
+         | 预测结果右移位数为负数                  | 第 9.2.6 节 |
          +-----------------------------------------+-------------+
 
                                   表格 1
 
-   All numbers used in a FLAC bitstream are integers; there are no
-   floating-point representations.  All numbers are big-endian coded,
-   except the field lengths used in Vorbis comments (see Section 8.6),
-   which are little-endian coded.  This exception for Vorbis comments is
-   to keep as much commonality as possible with Vorbis comments as used
-   by the Vorbis codec (see [Vorbis]).  All numbers are unsigned except
-   linear predictor coefficients, the linear prediction shift (see
-   Section 9.2.6), and numbers that directly represent samples, which
-   are signed.  None of these restrictions apply to application metadata
-   blocks or to Vorbis comment field contents.
-   FLAC 比特流中所使用的所有数值均为整数，没有浮点数表示形式。除了用于
-   表示 Vorbis 注释字段的长度（参见第 8.6 节），所有数值均为大端序编码。
-   用于表示 Vorbis 注释字段的长度所用的数值采用小端序编码方式是为了尽量
-   与 Vorbis 编解码器相兼容（关于 Vorbis 请参见
-   “https://xiph.org/vorbis/doc/v-comment.html”）。表示线性预测模型的
-   系数、线性预测模型移位位数（参见第 9.2.6 节）和直接表示采样信号的数值
-   使用有符号数表示，除此以外的所有数值都以无符号数表示。上述的有关数值
-   表示法的限制条件不适用于应用程序元数据数据块或 Vorbis 注释字段内容。
+   FLAC 比特流中出现的所有数值均为整数，没有浮点数表示形式。所有数值均为
+   大端序编码，除了在 Vorbis 注释中表示字段长度的数（参见第 8.6 节），
+   这个数是小端序编码的。将 Vorbis 注释的数值处理单独作为例外情况的原因
+   是为了尽可能与 Vorbis 编解码器所使用的 Vorbis 注释相兼容（参见
+   [Vorbis]）。除了表示线性预测器系数、线性预测结果的移位位数（参见
+   第 9.2.6 节）以及直接表示采样值的数采用有符号数表示，其余所有的数值
+   均采用无符号数表示。但是，上述所有的限制条件都不适用于
+   应用程序元数据块（Application metadata block）和 Vorbis 注释字段中
+   出现的内容。
 
-   All samples encoded to and decoded from the FLAC format MUST be in a
-   signed representation.
-   所有 FLAC 格式中用于编码或解码涉及到的采样信号数值「必须」（MUST）以
-   有符号数表示。
+   对于待编码为 FLAC 格式的采样以及从 FLAC 格式解码得到的采样，其数值
+   「必须」（MUST）采用有符号数表示。
 
-   There are several ways to convert unsigned sample representations to
-   signed sample representations, but the coding methods provided by the
-   FLAC format work best on samples that have numerical values that are
-   centered around zero, i.e., have no DC offset.  In most unsigned
-   audio formats, signals are centered around halfway within the range
-   of the unsigned integer type used.  If that is the case, converting
-   sample representations by first copying the number to a signed
-   integer with a sufficient range and then subtracting half of the
-   range of the unsigned integer type results in a signal with samples
-   centered around 0.
-   有多种方式将无符号数表示的采样信号转换为有符号数表示的采样信号，但
-   FLAC 提供的编码方式的最佳应用场景是在以 0 为平衡点的采样信号数值上，
-   举例来说就是没有 DC 偏移值的信号数值上。绝大多数使用无符号数表示的
-   音频格式中，信号往往以其数值范围的中点为平衡点。要在这种情况下将其
-   转换为有符号数表示，首先使用足够表示其最大最小值的有符号整数类型存储
-   其数值，然后将原有数值减去之前所用的无符号数整数类型所能表示的最大
-   数值的一半，所得到的最终结果应是以 0 为平衡点的有符号数数值。
+   将采样值从无符号数表示转换为有符号数表示的方式很多，但 FLAC 提供的
+   编码方式最适合应用在数值以 0 为中心的采样信号上，即没有 DC 偏移值的
+   采样信号上。大多数使用无符号数表示的音频格式中，采样值往往以其
+   数值范围的一半作为中心。要将这样的数转换为有符号数表示，首先需要选取
+   一个表示数值范围足够大的有符号整数存储其值，然后减去原先无符号数所能
+   表示的最大值的一半，得到的有符号数表示的采样值应该是以 0 为中心的。
 
-   Unary coding in a FLAC bitstream is done with zero bits terminated
-   with a one bit, e.g., the number 5 is coded unary as 0b000001.  This
-   prevents the frame sync code from appearing in unary-coded numbers.
-   FLAC 比特流中的一元编码以多个 0 和以 1 结尾的二进制表示，例如数字 5
-   的一元编码是：0b000001。这种方式可以避免帧同步编码出现在以一元编码
-   表示的数值中。
+   FLAC 比特流中的一进制编码以多个 0 和以 1 结尾的比特形式表示，例如
+   将数字 5 编码为一进制就是 0b000001。这样的编码方式可以避免出现
+   和帧同步码一模一样的数字编码。
 
-   When a FLAC file contains data that is forbidden or otherwise not
-   valid, decoder behavior is left unspecified.  A decoder MAY choose to
-   stop decoding upon encountering such data.  Examples of such data
-   include the following:
-   开发 FLAC 解码器时，如果在解码过程中遇到 FLAC 规范中禁止出现的数据或
-   非法数据，开发者应自行决定如何处理。「可以」（MAY）选择在遇到此类
-   非法数据时终止执行。下面是一些非法数据的示例：
+   本文不规定解码器如何处理包含禁止出现或非法形式的数据的 FLAC 文件。
+   解码器在解码时如遇此类数据，「可以」（MAY）终止解码：
 
-   *  One or more decoded sample values exceed the range offered by the
-      bit depth as coded for that frame.  For example, in a frame with a
-      bit depth of 8 bits, any samples not in the inclusive range from
-      -128 to 127 are not valid.
-      一个或多个解码后的采样信号数值超出了编码该数据帧所使用的位深度所能
-      表示的数值范围。例如，如果一个数据帧以 8 位位深度编码，任何不在
-      -128 到 127 范围内的数值都是非法数值。
+   *  解码后的一个或多个采样值超出了编码该帧的位深度所能表示的数值范围。
+      例如，对于一个位深度为 8 位的帧，任何不在 -128 到 127 范围内的数值
+      都是非法数据。
 
-   *  The number of wasted bits (see Section 9.2.2) used by a subframe
-      is such that the bit depth of that subframe (see Section 9.2.3 for
-      a description of subframe bit depth) equals zero or is negative.
-      一个子数据帧所使用的无用比特位位数令其位深度变为 0 或负数了。
-      （参见第 9.2.2 节“无用比特位”。关于子数据帧位深度的描述请参见第
-      9.2.3 节）
+   *  子帧所采用的无用比特数（参见第 9.2.2 节）导致其位深度小于或等于 0
+      （子帧位深度的有关信息请参见第 9.2.3 节）。
 
-   *  A frame header Cyclic Redundancy Check (CRC) (see Section 9.1.8)
-      or frame footer CRC (see Section 9.3) does not validate.
-      数据帧头部或尾部的循环冗余校验码异常。（头部和尾部的循环冗余校验
-      请分别参见第 9.1.8 节和第 9.3 节）
+   *  帧头或帧尾的循环冗余校验（CRC）与实际运算的校验结果不符
+      （帧头和帧尾的循环冗余校验请分别参见第 9.1.8 节和第 9.3 节）。
 
-   *  One of the forbidden bit patterns described in Table 1 is used.
-      使用了表格 1 中所列出的禁止使用的字段。
+   *  出现了表格 1 中所列出的禁止出现的比特模式。
 
 6.  格式布局总览
 
-   A FLAC bitstream consists of the fLaC (i.e., 0x664C6143) marker at
-   the beginning of the stream, followed by a mandatory metadata block
-   (called the streaminfo metadata block), any number of other metadata
-   blocks, and then the audio frames.
-   FLAC 比特流由头部的“fLaC（0x664C6143）”标记、一个必不可少的元数据块
-   （称之为数据流元数据块）、任意数量的其他元数据块以及音频数据帧组成。
+   FLAC 比特流的开头是“fLaC”（0x664C6143）标记，随后是一个强制性的
+   元数据块（称为“Streaminfo 元数据块”），然后是任意数量的其他元数据块，
+   最后是音频帧。
 
-   FLAC supports 127 kinds of metadata blocks; currently, 7 kinds are
-   defined in Section 8.
-   FLAC 支持 127 种元数据块，第 8 节中定义了其中的 7 种。
+   FLAC 支持 127 种元数据块；第 8 节中定义了目前能够使用的 7 种。
 
-   The audio data is composed of one or more audio frames.  Each frame
-   consists of a frame header that contains a sync code, information
-   about the frame (like the block size, sample rate, and number of
-   channels), and an 8-bit CRC.  The frame header also contains either
-   the sample number of the first sample in the frame (for variable
-   block size streams) or the frame number (for fixed block size
-   streams).  This allows for fast, sample-accurate seeking to be
-   performed.  Following the frame header are encoded subframes, one for
-   each channel.  The frame is then zero-padded to a byte boundary and
-   finished with a frame footer containing a checksum for the frame.
-   Each subframe has its own header that specifies how the subframe is
-   encoded.
-   音频数据由一个或多个音频数据帧组成。每个数据帧中的头部包含了一段
-   同步码、关于该数据帧的信息（例如数据块大小、采样率和通道数）和 8 位
-   长度的循环冗余校验码（CRC）。对于可变大小的数据块的流，数据帧头部中
-   还会存储数据帧中第一个采样信号的采样数量；对于固定大小的数据块的流，
-   数据帧头部存储的是数据帧数量（译注：第 4.1 节中有提到这个概念）；
-   这部分信息令采样信号的查找变得快速且精准。数据帧头部后面是编码后的
-   子数据帧，每个通道各有一份。每个子数据帧都含有相应的帧头，其规定了该
-   子数据帧是如何编码的。在子数据帧后面可能会填充 0 比特位以对齐字节边界
-   （不够一个字节就补满一个字节的长度），随后以一个包含了该帧校验码的
-   帧尾部结束。
-   （译注：最后才提到子数据帧含有各自的帧头，有点割裂，所以移动到
-   子数据帧的有关文本中去了。）
+   音频数据由一个或多个音频帧组成。每个帧又由帧头、一个或多个编码的子帧
+   以及帧尾组成。帧头包含了一段帧同步码、该帧的一些相关信息（例如
+   块大小、采样率和声道数）和一段 8 位长的循环冗余校验（CRC）。
+   对于块大小可变的 FLAC 流，帧头中还会存储该帧内部第一个采样的编号；
+   对于块大小固定的 FLAC 流，帧头存储的是帧编号。这部分信息能让定位
+   迅速且可控（精确到采样）。帧头的后面是编码的子帧，一个子帧对应
+   一个声道；每个子帧有其独立的帧头，规定了该子帧的编码方式。若最后一个
+   子帧没有对齐字节边界，就需要用 0 比特在其末尾进行填充。帧的最后
+   是帧尾，也是该帧的校验和。
+   （译注：原文中叙述帧的组成部分的内容散落在整段文字中，遂在开头
+           就将帧的各个组成部分罗列完毕；叙述有关子帧的部分细节内容
+           原本位于段落的结尾，翻译时将其移动到帧结构中提到子帧的
+           相关内容之后，读起来更连贯一些。）
 
-   In order to allow a decoder to start decoding at any place in the
-   stream, each frame starts with a byte-aligned 15-bit sync code.
-   However, since it is not guaranteed that the sync code does not
-   appear elsewhere in the frame, the decoder can check that it synced
-   correctly by parsing the rest of the frame header and validating the
-   frame header CRC.
-   每个数据帧都以一个已对齐字节大小的 15 位同步码作为开头，这么做能让
-   解码器在 FLAC 流的任意位置开始解码。然而，由于无法保证这段同步码不会
-   出现在数据帧的其他位置中，解码器可以通过解析数据帧头部的剩余部分并
-   验证头部 CRC 是否正确来确定其是否已经正确同步。
+   每个帧都以一个已对齐字节边界的 15 位同步码作为开头，这么做能够让
+   解码器在 FLAC 流的任意位置开始解码。然而，由于帧的其他位置上也可能
+   出现与同步码一样的编码，解码器应该解析帧头的其余部分并校验帧头的 CRC
+   以确保其同步正确。
 
-   Furthermore, to allow a decoder to start decoding at any place in the
-   stream even without having received a streaminfo metadata block, each
-   frame header contains some basic information about the stream.  This
-   information includes sample rate, bits per sample, number of
-   channels, etc.  Since the frame header is overhead, it has a direct
-   effect on the compression ratio.  To keep the frame header as small
-   as possible, FLAC uses lookup tables for the most commonly used
-   values for frame properties.  When a certain property has a value
-   that is not covered by the lookup table, the decoder is directed to
-   find the value of that property (for example, the sample rate) at the
-   end of the frame header or in the streaminfo metadata block.  If a
-   frame header refers to the streaminfo metadata block, the file is not
-   "streamable"; see Section 7 for details.  By using lookup tables, the
-   file is streamable and the frame header size is small for the most
-   common forms of audio data.
-   此外，为了让解码器在没有接收到任何数据流元数据块时依然能够进行解码，
-   每个数据帧的头部都包含了一些与本数据流相关的信息，如采样率、位深度或
-   采样分辨率、通道数量等信息。由于数据帧头部是一笔开销，会直接影响
-   压缩率，为了让帧头尽可能地小，FLAC 中为数据帧属性中最常用的部分值
-   提供了查询表。对于不在此表格中的属性，解码器将直接从帧头的末尾或
-   数据流元数据块中读取该属性值（例如采样率）。需要注意的是，如果数据帧
-   头部引用了数据流元数据块，那么这个文件就不是“streamable”的，详情请
-   参见第 7 节。而采用了查询表的文件是“streamable”的，并且数据帧的头部
-   对于绝大多数常见音频格式而言足够小。
+   此外，为了让解码器能在没有读取 Streaminfo 元数据块的情况下依然能够
+   在 FLAC 流中的任意位置开始解码，每个帧的帧头都包含了一些与此 FLAC 流
+   相关的信息，例如采样率、位深度、声道数等信息。由于帧头算作一笔开销，
+   对压缩率有着直接的影响。为了让帧头尽可能地小，FLAC 为帧属性中
+   最常用的部分值提供了查询表。对于不在查询表中的属性的值，解码器应到
+   帧头的尾部或从 Streaminfo 元数据块中寻找该属性的值（例如采样率）。
+   如果帧头引用了 Streaminfo 元数据块，那么该文件就不属于
+   Streamable 子集；有关信息请参见第 7 节。而采用了查询表的 FLAC 文件
+   属于 Streamable 子集，同时，对于绝大多数常见的音频数据格式而言
+   这样的帧头已足够小。
 
-   Individual subframes (one for each channel) are coded separately
-   within a frame and appear serially in the stream.  In other words,
-   the encoded audio data is NOT channel-interleaved.  This reduces
-   decoder complexity at the cost of requiring larger decode buffers.
-   Each subframe has its own header specifying the attributes of the
-   subframe, like prediction method and order, residual coding
-   parameters, etc.  Each subframe header is followed by the encoded
-   audio data for that channel.
-   单独的子数据帧（每个通道各有一个）是独立编码在一个数据帧里的，并且在
-   整个数据流中按顺序排列，换句话说，编码后的音频数据不存在通道交叉。
-   这样的方式通过更大的解码缓冲区大小以换取解码器较低的复杂度。每个
-   子数据帧有自己的帧头，其规定了子数据帧的属性，例如预测模型与其阶数、
-   残余编码的参数等。其后是对应通道的编码后的音频数据。
+   帧内编码了一个个单独的子帧（一个子帧对应一个声道），但在 FLAC 流中
+   子帧又是以串行排列的形式出现的。换句话说，编码后的音频数据没有
+   交叉声道。这种编码方式以更大的解码缓冲区换取了较低的解码器复杂度。
+   每个子帧都有自己的帧头，其规定了子帧的属性，例如预测方式、
+   预测器的阶、残差编码的参数等。子帧帧头的后面是其对应声道的编码后的
+   音频数据。
 
 7.  Streamable 子集
 
-   The FLAC format specifies a subset of itself as the FLAC streamable
-   subset.  The purpose of this is to ensure that any streams encoded
-   according to this subset are truly "streamable", meaning that a
-   decoder that cannot seek within the stream can still pick up in the
-   middle of the stream and start decoding.  It also makes hardware
-   decoder implementations more practical by limiting the encoding
-   parameters in such a way that decoder buffer sizes and other resource
-   requirements can be easily determined.  The streamable subset makes
-   the following limitations on what MAY be used in the stream:
-   FLAC 格式规定了一个自身的子集，即 FLAC streamable 子集。这项规定的
-   目的是确保任何按照此子集标准编码的流均为真正的“streamable”，即解码器
-   在此类流中即使无法进行定位也依然可以从流中的任意一部分开始解码。这样
-   还能限制编码器参数，便于确定解码器缓冲区大小以及其他资源开销，进而让
-   硬件上的解码器实现更实用。Streamable 子集对数据流中「可」（MAY）用的
-   属性作出了以下限制：
+   FLAC 格式规定了一个自身的子集，即 FLAC streamable 子集。其目的是确保
+   任何按照此规定编码的 FLAC 流都属于真正的 Streamable 子集，意味着即使
+   解码器在此类 FLAC 流中无法进行定位也依然可以从流中的任意一部分开始
+   解码。这样还能限制编码器参数，便于确定解码器缓冲区大小以及其他资源
+   需求量，进而让硬件上的解码器更易于实现。符合 Streamable 子集要求的流
+   有着以下的「可用」（MAY）限制条件：
 
-   *  The sample rate bits (see Section 9.1.2) in the frame header MUST
-      be 0b0001-0b1110, i.e., the frame header MUST NOT refer to the
-      streaminfo metadata block to describe the sample rate.
-      数据帧头部中用于表示采样率的二进制「必须」（MUST）是
-      0b0001-0b1110。帧头「不得」（MUST NOT）引用流信息元数据块的信息来
-      表示采样率。
+   *  帧头中表示采样率的比特（参见第 9.1.2 节）「必须」（MUST）是
+      0b0001-0b1110，即帧头「不得」（MUST NOT）引用 Streaminfo 元数据块
+      以表示采样率。
 
-   *  The bit depth bits (see Section 9.1.4) in the frame header MUST be
-      0b001-0b111, i.e., the frame header MUST NOT refer to the
-      streaminfo metadata block to describe the bit depth.
-      数据帧头部中的用于表示位深度的二进制「必须」（MUST）是
-      0b001-0b111。帧头「不得」（MUST NOT）引用流信息元数据块的信息来
-      表示位深度。
+   *  帧头中表示位深度的比特「必须」（MUST）是 0b001-0b111，即帧头
+      「不得」（MUST NOT）引用 Streaminfo 元数据块以表示位深度。
 
-   *  The stream MUST NOT contain blocks with more than 16384
-      interchannel samples, i.e., the maximum block size must not be
-      larger than 16384.
-      数据流所包含的通道间采样信号「不得」（MUST NOT）超过 16384 个，即
-      数据块大小最大不能大于 16384。
+   *  FLAC 流中「不得」（MUST NOT）包含任何声道间采样数量超过
+      16384 个的块，即块大小不能超过 16384 个采样。
 
-   *  Audio with a sample rate less than or equal to 48000 Hz MUST NOT
-      be contained in blocks with more than 4608 interchannel samples,
-      i.e., the maximum block size used for this audio must not be
-      larger than 4608.
-      拥有超过 4608 个通道间采样信号的数据块中「不得」（MUST NOT）出现
-      小于或等于 48000 Hz 采样率的音频数据。对于含有此类采样率的音频，
-      其数据块大小最大不能超过 4608。
+   *  采样率小于等于 48000 Hz 的音频「不得」（MUST NOT）出现在拥有超过
+      4608 个声道间采样数量的块中，即对于此类音频，块大小不能超过 4608。
 
-   *  Linear prediction subframes (see Section 9.2.6) containing audio
-      with a sample rate less than or equal to 48000 Hz MUST have a
-      predictor order less than or equal to 12, i.e., the subframe type
-      bits in the subframe header (see Section 9.2.1) MUST NOT be
-      0b101100-0b111111.
-      包含采样率小于或等于 48000 Hz 的音频的，经线性预测并编码而成的
-      子数据帧的预测模型阶数「必须」（MUST）小于或等于 12，即子数据帧
-      头部中表示子数据帧类型的二进制（参见第 9.2.1 节）
+   *  采用线性预测方式编码而成的子帧（参见第 9.2.6 节）中如果包含采样率
+      小于等于 48000 Hz 的音频，则其预测器的阶「必须」（MUST）小于等于
+      12，即此类子帧帧头中表示子帧类型的比特（参见第 9.2.1 节）
       「不得」（MUST NOT）是 0b101100-0b111111。
 
-   *  The Rice partition order (see Section 9.2.7) MUST be less than or
-      equal to 8.
-      Rice 分区的阶数（参见 9.2.7 节）「必须」（MUST）小于或等于 8。
+   *  Rice 分区的阶（参见第 9.2.7 节）「必须」（MUST）小于等于 8。
 
-   *  The channel ordering MUST be equal to one defined in
-      Section 9.1.3, i.e., the FLAC file MUST NOT need a
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK tag to describe the channel
-      ordering.  See Section 8.6.2 for details.
-      表示通道数的二进制编码「必须」（MUST）是第 9.1.3 节中定义的值，即
-      FLAC 文件「不得」（MUST NOT）采用
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签。详情请参见第 8.6.2 节。
+   *  表示声道信息的比特「必须」（MUST）是第 9.1.3 节中所定义的模式，
+      即 FLAC 文件「不得」（MUST NOT）通过
+      WAVEFORMATEXTENSIBLE_CHANNEL_MASK 标签描述声道信息。详情请参见
+      第 8.6.2 节。
 
 8.  文件级元数据
 
