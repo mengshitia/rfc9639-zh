@@ -60,10 +60,10 @@ ISSN: 2070-1721                                            December 2024
      8.3.  Padding
      8.4.  Application
      8.5.  Seek Table
-       8.5.1.  Seek Point
+       8.5.1.  定位点
      8.6.  Vorbis Comment
        8.6.1.  标准字段名称
-       8.6.2.  通道掩码
+       8.6.2.  声道掩码
      8.7.  Cuesheet
        8.7.1.  Cuesheet Track
      8.8.  图像
@@ -679,15 +679,16 @@ ISSN: 2070-1721                                            December 2024
    用符号位的比特将其扩充到整数个字节。
 
    下面是一个位深度为 6 位的双声道音频流，各个比特的排列如下：
+   （译注：原文的标注有误，参见 https://errata.rfc-editor.org/eid8256。）
 
    SSAAAAAASSBBBBBBSSCCCCCC
    ^   ^   ^   ^   ^   ^
-   |   |   |   |   |  第一个声道的第二个采样的实际比特
-   |   |   |   |  第二个声道的第二个采样扩展的比特
-   |   |   |  第二个声道的第一个采样的实际比特
-   |   |  第二个声道的第一个采样扩展的比特
-   |  第一个声道的第一个采样的实际比特
-   第一个声道的第一个采样扩展的比特
+   |   |   |   |   |  第一个声道的第二个采样的比特
+   |   |   |   |  第一个声道的第二个采样的符号位扩展比特
+   |   |   |  第二个声道的第一个采样的比特
+   |   |  第二个声道的第一个采样的符号位扩展比特
+   |  第一个声道的第一个采样的比特
+   第一个声道的第一个采样的符号位扩展比特
 
    下面是一个位深度为 12 位的单声道音频流，采用小端序表示的各个比特的
    排列如下：
@@ -695,10 +696,10 @@ ISSN: 2070-1721                                            December 2024
    AAAAAAAASSSSAAAABBBBBBBBSSSSBBBB
       ^     ^   ^   ^       ^   ^
       |     |   |   |       |  第二个采样中最高的 4 位比特
-      |     |   |   | 第二个采样扩展的比特
-      |     |   |  第二个采样中的最低 8 位比特
+      |     |   |   | 第二个采样的符号位扩展比特
+      |     |   |  第二个采样中的最低的 8 位比特
       |     |  第一个采样中最高的 4 位比特
-      |    第一个采样扩展的比特
+      |    第一个采样的符号位扩展比特
      第一个采样中最低的 8 位比特
 
 8.3.  Padding
@@ -761,190 +762,108 @@ ISSN: 2070-1721                                            December 2024
 
                                   表格 6
 
-   A seek table is generally not usable for seeking in a FLAC file
-   embedded in a container (see Section 10), as such containers usually
-   interleave FLAC data with other data and the offsets used in seek
-   points are those of an unmuxed FLAC stream.  Also, containers often
-   provide their own seeking methods.  However, it is possible to store
-   the seek table in the container along with other metadata when muxing
-   a FLAC file, so this stored seek table can be restored when demuxing
-   the FLAC stream into a standalone FLAC file.
-   对于嵌入到容器中的 FLAC 文件（参见第 10 节），定位表通常无法使用，
-   因为容器常常交错编码 FLAC 文件数据与其他数据，而定位表中定位点的
-   偏移值是没有经过信号复用的 FLAC 流中的值。不过，依然可以将定位表与
-   其他元数据一起存储到容器中，在还原出原有的 FLAC 文件后，此定位表就
-   可以使用了。
+   定位表通常无法用于嵌入到容器中的 FLAC 文件（参见第 10 节），因为这类
+   容器常常交织 FLAC 与其他数据，而定位点的偏移量适用于未经复用的
+   FLAC 流。同时，容器也常常提供自己的定位方法。不过，复用 FLAC 时依然
+   可以将定位表与其他元数据一起存储到容器中，在将容器中的 FLAC 流分用为
+   独立的 FLAC 文件后就可以还原定位表了。
+   （译注：注意本文中提到的『复用』特指将 FLAC 音频嵌入到容器中，参见
+           第 3 节中『复用』的定义。）
 
 8.5.1.  定位点
 
    +=======+==========================================================+
    | 数据  | 描述信息                                                 |
    +=======+==========================================================+
-   | u(64) | 目标数据帧中的第一个采样信号的编号；对于“占位符”类型的   |
-   |       | 定位点而言是“0xFFFFFFFFFFFFFFFF”。                       |
+   | u(64) | 目标帧内部第一个采样的编号；对于占位符类型的定位点，该值 |
+   |       | 应是 0xFFFFFFFFFFFFFFFF（全 1）。                        |
    +-------+----------------------------------------------------------+
-   | u(64) | 第一个数据帧头部的第一个字节到目标数据帧头部的第一个字节 |
-   |       | 之间的距离（偏移值），以字节数为单位。                   |
+   | u(64) | 第一个帧头的第一个字节到目标帧头的第一个字节的偏移量，   |
+   |       | 单位：字节数。                                           |
    +-------+----------------------------------------------------------+
-   | u(16) | 目标数据帧包含的采样信号的数量。                         |
+   | u(16) | 目标帧包含的采样数量。                                   |
    +-------+----------------------------------------------------------+
 
                                  表格 7
 
-   备注：
+   一些注解：
 
-   *  For placeholder points, the second and third field values are
-      undefined.
-      对于“占位符”类型的定位点而言，第二和第三个字段的值是未定义的。
+   *  对占位符类型的定位点的第二、第三个字段的值不作要求。
 
-   *  Seek points within a table MUST be sorted in ascending order by
-      sample number.
-      定位表中的定位点「必须」（MUST）按采样信号编号升序排列和存储。
+   *  同一张定位表中的定位点「必须」（MUST）按采样编号升序排列。
 
-   *  Seek points within a table MUST be unique by sample number, with
-      the exception of placeholder points.
-      定位表中的除了“占位符”类型的定位点以外，其编号「必须」（MUST）
-      对应采样信号编号，即是唯一且不重复的。
+   *  同一张定位表中的定位点，其存储的采样编号「必须」（MUST）是唯一的，
+      占位符类型的定位点除外。
 
-   *  The previous two notes imply that there MAY be any number of
-      placeholder points, but they MUST all occur at the end of the
-      table.
-      前两项备注所隐含的规则是：定位表中「可以」（MAY）包含任意数量的
-      “占位符”类型的定位点，但这些定位点「必须」（MUST）位于定位表的
-      末尾。
+   *  前两项注解所隐含的规定是：定位表中「可以」（MAY）存在任意数量的
+      占位符类型的定位点，但这些定位点「必须」（MUST）位于定位表的末尾。
 
-   *  The sample offsets are those of an unmuxed FLAC stream.  The
-      offsets MUST NOT be updated on muxing to reflect the new offsets
-      of FLAC frames in a container.
-      用于定位的偏移值适用于未经过信号复用的 FLAC 流。在将 FLAC 嵌入到
-      容器中时，这些偏移值「不得」（MUST NOT）修改为表示已嵌入到
-      容器中，经过信号复用后的 FLAC 流中的采样信号偏移值。
+   *  定位点中的偏移量指的是未经复用的 FLAC 流中的采样偏移量。复用 FLAC
+      后，「不得」（MUST）将其更改为容器内的 FLAC 帧的偏移量。
 
-8.6.  Vorbis 注释
+8.6.  Vorbis Comment
 
-   A Vorbis comment metadata block contains human-readable information
-   coded in UTF-8.  The name "Vorbis comment" points to the fact that
-   the Vorbis codec stores such metadata in almost the same way (see
-   [Vorbis]).  A Vorbis comment metadata block consists of a vendor
-   string optionally followed by a number of fields, which are pairs of
-   field names and field contents.  The vendor string contains the name
-   of the program that generated the file or stream.  The fields contain
-   metadata describing various aspects of the contained audio.  Many
-   users refer to these fields as "FLAC tags" or simply as "tags".  A
-   FLAC file MUST NOT contain more than one Vorbis comment metadata
-   block.
-   Vorbis 注释元数据块中包含了以人类自然语言书写并以 UTF-8 编码的信息。
-   “Vorbis 注释”这个名字表明实际上这些元数据与 Vorbis 编解码器所使用的
-   存储方式是一样的（参见 Vorbis 相关信息的外部链接：
-   “https://xiph.org/vorbis/doc/v-comment.html”）。Vorbis 注释元数据块
-   包含了“供应商”字符串和可选的一些字段（这些字段的名称与内容以
-   键值对的形式出现）。“供应商”字符串包含了生成此文件或数据流的
-   程序名称。其后的字段包含了与音频数据各方面相关的描述信息。许多用户
-   将这些字段称为“FLAC 标签”或简称为“标签”。每个 FLAC 文件中的
-   Vorbis 注释元数据块的数量「不得」（MUST NOT）大于 1。
+   Vorbis 注释（Vorbis comment）元数据块中包含了 UTF-8 编码的人类可读的
+   （human-readable）信息。“Vorbis 注释”这个名字表明这些元数据的存储方式
+   实际上与 Vorbis 编解码器所使用的方式几乎是一样的（参见 [Vorbis]）。
+   Vorbis 注释元数据块由供应商字符串（Vendor string）和一些可选的字段
+   组成。供应商字符串包含了生成此 FLAC 文件或流的程序名称。字段则包含了
+   描述文件中音频数据各方面相关信息的元数据。许多用户将这些字段称为
+   “FLAC 标签”或简称为“标签”。FLAC 文件中 Vorbis 注释元数据块的数量
+   「不能」（MUST NOT）超过 1 个。
 
-   In a Vorbis comment metadata block, the metadata block header is
-   directly followed by 4 bytes containing the length in bytes of the
-   vendor string as an unsigned number coded little-endian.  The vendor
-   string follows, is UTF-8 coded and is not terminated in any way.
-   每个 Vorbis 注释元数据块中的元数据块头部的后方是一段 4 字节长、
-   以小端序无符号整数形式表示、单位是字节数的，表示“供应商”字符串长度的
-   数据。这段数据之后就是以 UTF-8 编码的“供应商”字符串，注意字符串不会
-   以任何特定的字符作为结尾标志。
-   （译注：“is not terminated in any way” 这样的表述还是比较容易造成
-   困惑的；以我的个人经验来理解，C 语言中 '\0' 被当作字符串结尾标识符；
-   这里的意思是没有哪个特定的字符被当作这些字符串的结尾标识符，各个字段
-   首尾相连，唯一能用于区分不同字段的只有长度信息；下一段中也有这样的
-   表述，在译文中就不再重复这一点了。）
+   Vorbis 注释元数据块头的后面是供应商字符串的长度，以 4 字节长的
+   小端序无符号数表示，单位是字节数。然后是真正的供应商字符串，该字符串
+   以 UTF-8 编码，没有结尾标志。
+   （译注：对原文“The vendor string ... is not terminated in any way”，
+           个人的理解是：由于 UTF-8 编码的字符可能包含对于某些计算机语言
+           而言是字符串结尾的字符，例如 C 语言中，字符串以 '\0' 字符作为
+           字符串的结尾标志，那么在实现解码器时必须考虑这种情况，才能
+           正确地处理这段字符串；下一段中的字段信息也是一样。）
 
-   Following the vendor string are 4 bytes containing the number of
-   fields that are in the Vorbis comment block, stored as an unsigned
-   number coded little-endian.  If this number is non-zero, it is
-   followed by the fields themselves, each of which is stored with a
-   4-byte length.  For each field, the field length in bytes is stored
-   as a 4-byte unsigned number coded little-endian.  The field itself
-   follows it.  Like the vendor string, the field is UTF-8 coded and not
-   terminated in any way.
-   在“供应商”字符串后面，是一段 4 字节长、以小端序无符号整数形式表示，
-   表示 Vorbis 注释信息块中字段数量的数据。如果该数据表示的数值非 0，
-   其后方将是字段信息，每个字段的长度均以 4 字节长的小端序无符号整数形式
-   表示。长度信息后面是字段存储的信息，与“供应商”字符串一样采用 UTF-8
-   进行编码。
+   供应商字符串后面是 Vorbis 注释元数据块中字段的数量，以 4 字节长的
+   小端序无符号数表示。如果该数值非 0，其后方将是各个字段。每个字段的
+   长度均以 4 字节长的小端序无符号数表示。长度信息后面是字段存储的信息。
+   这些信息的存储方式与供应商字符串一样采用 UTF-8 编码，也没有结尾标志。
 
-   Each field consists of a field name and field contents, separated by
-   an = character.  The field name MUST only consist of UTF-8 code
-   points U+0020 through U+007E, excluding U+003D, which is the =
-   character.  In other words, the field name can contain all printable
-   ASCII characters except the equals sign.  The evaluation of the field
-   names MUST be case insensitive, so U+0041 through 0+005A (A-Z) MUST
-   be considered equivalent to U+0061 through U+007A (a-z).  The field
-   contents can contain any UTF-8 character.
    每个字段由一个字段名称和字段内容组成，名称和内容之间以“=”符号相隔。
-   字段名称「必须」（MUST）只由从 U+0020 到 U+007E 的 UTF-8 编码组成，
-   其中表示“=”符号的 U+003D 不可以出现；换句话说，字段名称中可以出现除了
-   “=”符号以外的任何可打印的 ASCII 字符。读取字段名称时「必须」（MUST）
-   采用大小写不相关的处理方式，即 U+0041 到 0+005A（A-Z）的字符与
-   U+0061 到 U+007A（a-z）的字符在处理时「必须」是等价的。而字段内容中
-   可以包含任意的 UTF-8 字符。
+   字段名称「必须」（MUST）是 U+0020 到 U+007E 范围内的 UTF-8 编码组成，
+   其中 U+003D 表示“=”符号，因此不可以使用；换句话说，字段名称可以包含
+   除了“=”符号以外所有可打印的 ASCII 字符。字段名称的评估（evaluation）
+   「必须」（MUST）采取大小写不相关的处理方式，即「必须」（MUST）认定
+   U+0041 到 0+005A 的字符（A-Z）等价于 U+0061 到 U+007A 的字符（a-z）。
+   而字段内容中可以包含任意的 UTF-8 字符。
 
-   Note that the Vorbis comment as used in Vorbis allows for 2^64 bytes
-   of data whereas the FLAC metadata block is limited to 2^24 bytes.
-   Given the stated purpose of Vorbis comments, i.e., human-readable
-   textual information, the FLAC metadata block limit is unlikely to be
-   restrictive.  Also, note that the 32-bit field lengths are coded
-   little-endian as opposed to the usual big-endian coding of fixed-
-   length integers in the rest of the FLAC format.
-   需要注意的是，Vorbis 中所使用的 Vorbis 注释的长度最大可达 2^64 字节，
-   但在 FLAC 元数据块中，Vorbis 注释的长度最大不能超过 2^24 字节。考虑到
-   Vorbis 注释的目的，即存储人类自然语言的相关文本信息，FLAC 元数据块的
-   大小限制应该不至于造成影响。此外还需要注意的是，表示字段长度的数值是
-   以 32 位小端序无符号整数编码的，这不同于 FLAC 格式中其他使用了大端序
-   编码的数值。
+   需要注意的是，Vorbis 所使用的 Vorbis 注释的长度最大可达 2^64 个字节，
+   而 FLAC 的元数据块的大小最大不能超过 2^24 个字节。鉴于 Vorbis 注释的
+   明确目的就是存储人类可读的文本信息，因此不太可能受到 FLAC 的
+   元数据块大小的限制。此外，字段长度是以 32 位小端序无符号数表示的，
+   而在 FLAC 的其他位置通常以大端序定长整数表示数值。
 
 8.6.1.  标准字段名称
 
-   Only one standard field name is defined: the channel mask field (see
-   Section 8.6.2).  No other field names are defined because the
-   applicability of any field name is strongly tied to the content it is
-   associated with.  For example, field names that are useful for
-   describing files that contain a single work of music would be
-   unusable when labeling archived broadcasts, recordings of any kind,
-   or a collection of music works.  Even when describing a single work
-   of music, different conventions exist depending on the kind of music:
-   orchestral music differs from music by solo artists or bands.
-   此处只有定义了一个标准的字段名称：通道掩码（参见第 8.6.2 节）。不定义
-   其他字段名称的原因是任何实际使用的字段都与其内容紧密相关；例如，用于
-   描述包含单一音乐作品的字段名称不适用于广播集、录音集或音乐集；就算
-   只用于描述单一音乐作品，不同类型的音乐有着不同的标签惯例：交响乐作品
-   和单一艺术家或乐队的作品是不同的。
+   定义了的标准字段名称（Standard field name）只有一个，即声道掩码
+   （Channel mask）这个字段（参见第 8.6.2 节）。不定义其他字段名称的原因
+   是任何实际应用的字段都与其内容紧密相关。例如用于描述单个音乐作品的
+   字段名称并不适合用于描述归档的广播集、任意种类的录音或音乐作品合集。
+   就算只用于描述单一音乐作品，不同类型的音乐也有着不同的标签惯例：
+   用于交响乐作品和单个艺术家或乐队作品的标签是不同的。
 
-   Despite the fact that no field names are formally defined, there is a
-   general trend among devices and software capable of FLAC playback
-   that are meant to play music.  Most of those recognize at least the
-   following field names:
-   虽然没有任何正式定义的字段名称，但在支持 FLAC 的设备和软件中存在一种
-   趋势，那就是播放音乐。下面列出的字段至少是受大多数设备和软件支持的：
+   虽然没有任何正式定义的字段名称，但在支持回放 FLAC 的设备和软件中存在
+   一种趋势，那就是播放音乐。这类设备和软件中的大多数至少都能识别以下的
+   这些字段名称：
 
-   Title:  Name of the current work.
-   Title：此音乐作品的名称（或称为标题）。
+   Title：此作品的名称。
 
-   Artist:  Name of the artist generally responsible for the current
-      work.  For orchestral works, this is usually the composer;
-      otherwise, it is often the performer.
-   Artist：与此音乐作品最相关的艺术家的名字。交响乐作品中一般是编曲者，
-      其他情况下一般是演奏者。
+   Artist：与此作品最相关的艺术家的名字。在交响乐作品中一般是编曲者；
+      而其他作品中一般是演奏者。
 
-   Album:  Name of the collection the current work belongs to.
-   Album：此作品所属的作品集的名称。
+   Album：此作品所属合集的名称。
 
-   For a more comprehensive list of possible field names suited for
-   describing a single work of music in various genres, the list of tags
-   used in the MusicBrainz project is suggested; see [MusicBrainz].
-   更完整的字段名称列表请参见 MusicBrainz 项目中的标签列表，这些标签
-   适用于描述各种风格流派的单一音乐作品。参见
-   ”https://picard-docs.musicbrainz.org/en/variables/variables.html“。
+   如需一份更完整的用于描述各种风格流派的单个音乐作品的标签列表，建议
+   参考 MusicBrainz 项目所使用的标签列表，见 [MusicBrainz]。
 
-8.6.2.  通道掩码
+8.6.2.  声道掩码
 
    Besides fields containing information about the work itself, one
    field is defined for technical reasons:
@@ -955,10 +874,10 @@ ISSN: 2070-1721                                            December 2024
    with this field, it is possible to describe different channel
    contents.
    除了用于描述与作品本身相关信息的字段以外，还有一个出于技术原因定义的
-   字段：WAVEFORMATEXTENSIBLE_CHANNEL_MASK。这个字段用于提示解码器，此
-   文件中的通道信息与第 9.1.3 节中所定义的默认的通道信息不同。例如，默认
-   情况下，FLAC 音频文件包含的两个通道通常会被处理为左右声道，但如果
-   使用了这个字段，就可以将这两个通道处理为其他的通道组合。
+   字段：WAVEFORMATEXTENSIBLE_CHANNEL_MASK。这个字段用于提示此文件的
+   声道信息与第 9.1.3 节中所定义的默认声道信息不同。举个例子，默认情况下
+   FLAC 音频文件包含的两个声道会被当作左右声道来处理，但是用这个字段
+   可以将这两个声道当作其他的声道来处理。
 
    The channel mask consists of flag bits indicating which channels are
    present.  The flags only signal which channels are present, not in
