@@ -679,7 +679,8 @@ ISSN: 2070-1721                                            December 2024
    用符号位的比特将其扩充到整数个字节。
 
    下面是一个位深度为 6 位的双声道音频流，各个比特的排列如下：
-   （译注：原文的标注有误，参见 https://errata.rfc-editor.org/eid8256。）
+   （译注：下方示例中的原文标注有误，翻译时已更正。
+           见 https://errata.rfc-editor.org/eid8256。）
 
    SSAAAAAASSBBBBBBSSCCCCCC
    ^   ^   ^   ^   ^   ^
@@ -865,155 +866,104 @@ ISSN: 2070-1721                                            December 2024
 
 8.6.2.  声道掩码
 
-   Besides fields containing information about the work itself, one
-   field is defined for technical reasons:
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK.  This field is used to communicate
-   that the channels in a file differ from the default channels defined
-   in Section 9.1.3.  For example, by default, a FLAC file containing
-   two channels is interpreted to contain a left and right channel, but
-   with this field, it is possible to describe different channel
-   contents.
    除了用于描述与作品本身相关信息的字段以外，还有一个出于技术原因定义的
-   字段：WAVEFORMATEXTENSIBLE_CHANNEL_MASK。这个字段用于提示此文件的
+   字段：WAVEFORMATEXTENSIBLE_CHANNEL_MASK。这个字段的存在表示此文件的
    声道信息与第 9.1.3 节中所定义的默认声道信息不同。举个例子，默认情况下
-   FLAC 音频文件包含的两个声道会被当作左右声道来处理，但是用这个字段
-   可以将这两个声道当作其他的声道来处理。
+   FLAC 音频文件包含的两个声道会被当作左右声道来处理，但是借助这个字段
+   提供的信息可以将这两个声道当作其他的声道组合来处理。
 
-   The channel mask consists of flag bits indicating which channels are
-   present.  The flags only signal which channels are present, not in
-   which order, so if a file to be encoded has channels that are ordered
-   differently, they have to be reordered.  This mask is stored with a
-   hexadecimal representation preceded by 0x; see the examples below.
-   Please note that a file in which the channel order is defined through
-   the WAVEFORMATEXTENSIBLE_CHANNEL_MASK is not streamable (see
-   Section 7), as the field is not found in each frame header.  The mask
-   bits can be found in the following table.
-   通道掩码本质是标识符，不同的标识符表示不同的通道类型。但标识符只用于
-   表示通道类型，其出现顺序不一定代表实际的通道编码顺序。因此，假设某个
-   文件编码时的通道顺序与通道掩码出现的顺序不同，则需要对通道掩码进行
-   排序。通道掩码是一个以 0x 开始的十六进制数，参见下方的示例。
-   需要注意的是，使用了 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 定义通道和顺序
-   的流不是“steamable”的（参见第 7 节）。通道掩码的比特位位置位于下表：
-   （译注：原表格中表示位置的数字从 0 开始表示第一位，翻译时改为
-   从 1 开始表示第一位。通道类型其实也是扬声器位置，但不同的场景下的翻译
-   不同，此外 DTS、SSDT、Dolby 对各个扬声器位置的名称也有些不同，因此
-   这里的翻译名称仅供参考。）
+   声道掩码指的是代表某个声道信息的标记比特。这些标记不表示声道的顺序，
+   因此假如文件编码时改变了声道顺序，解码时就需要将其重新排序。声道掩码
+   一个以“0x”开头的十六进制数表示；见下方的示例。需要注意的是，使用
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段定义声道顺序的 FLAC 流不属于
+   Streamable 子集（参见第 7 节），因为各个帧头中都不包含该字段。
+   声道掩码比特请见下表：
 
                +============+=============================+
-               | 位置       | 表示的通道类型              |
+               | 比特       | 代表的声道信息              |
                +============+=============================+
-               | 1          | 左前方                      |
+               | 0          | 左前（Front left）          |
                +------------+-----------------------------+
-               | 2          | 右前方                      |
+               | 1          | 右前（Front right）         |
                +------------+-----------------------------+
-               | 3          | 前方中间                    |
+               | 2          | 前中央（Front center）      |
                +------------+-----------------------------+
-               | 4          | 低频音效（LFE）             |
+               | 3          | 低频效果（LFE）             |
+               |            | （Low-frequency effects）   |
                +------------+-----------------------------+
-               | 5          | 左后方                      |
+               | 4          | 左后（Back left）           |
                +------------+-----------------------------+
-               | 6          | 右后方                      |
+               | 5          | 右后（Back right）          |
                +------------+-----------------------------+
-               | 7          | 中间的左前方                |
+               | 6          | 中央左前                    |
+               |            | （Front left of center）    |
                +------------+-----------------------------+
-               | 8          | 中间的右前方                |
+               | 7          | 中央右前                    |
+               |            | （Front right of center）   |
                +------------+-----------------------------+
-               | 9          | 后方中间                    |
+               | 8          | 后中央（Back center）       |
                +------------+-----------------------------+
-               | 10         | 左侧方                      |
+               | 9          | 左侧（Side left）           |
                +------------+-----------------------------+
-               | 11         | 右侧方                      |
+               | 10         | 右侧（Side right）          |
                +------------+-----------------------------+
-               | 12         | 中间高处                    |
+               | 11         | 中央顶部（Top center）      |
                +------------+-----------------------------+
-               | 13         | 左前方高处                  |
+               | 12         | 左前顶部（Top front left）  |
                +------------+-----------------------------+
-               | 14         | 前方中间高处                |
+               | 13         | 前中央顶部                  |
+               |            | （Top front center）        |
                +------------+-----------------------------+
-               | 15         | 右前方高处                  |
+               | 14         | 右前顶部（Top front right） |
                +------------+-----------------------------+
-               | 16         | 左后方高处                  |
+               | 15         | 左后顶部（Top rear left）   |
                +------------+-----------------------------+
-               | 17         | 后方中间高处                |
+               | 16         | 后中央顶部                  |
+               |            | （Top rear center）         |
                +------------+-----------------------------+
-               | 18         | 右后方高处                  |
+               | 17         | 右后顶部（Top rear right）  |
                +------------+-----------------------------+
 
                                  表格 8
 
-   Following are three examples:
    下面是 3 个示例：
 
-   *  A file has a single channel -- an LFE channel.  The Vorbis comment
-      field is WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x8.
-      单一低频音效（LFE）通道的文件，Vorbis 注释为：
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x8。
-      （译注：对应的二进制为：0b 1000。）
+   *  一个只有低频效果（LFE）声道的单声道音频文件。Vorbis 注释中相应的
+      字段为 WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x8。
 
-   *  A file has four channels -- front left, front right, top front
-      left, and top front right.  The Vorbis comment field is
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x5003.
-      包含 4 个通道（左前方、右前方、左前方高处和右前方高处）的文件，
-      Vorbis 注释为：WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x5003。
-      （译注：对应的二进制为：0b 0101 0000 0000 0011。）
+   *  一个四声道音频文件，各声道分别是左前（Front left）、右前
+      （Front right）、左前顶部（Top front left）和右前顶部
+      （Top front right）。Vorbis 注释中相应的字段为
+      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x5003。
 
-   *  An input has four channels -- back center, top front center, front
-      center, and top rear center in that order.  These have to be
-      reordered to front center, back center, top front center, and top
-      rear center.  The Vorbis comment field added is
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x12104.
-      包含 4 个通道的输入信号，并将通道顺序重新排列为：前方中间、
-      后方中间、前方中间高处和后方中间高处；Vorbis 注释为：
-      WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x12104。
-      （译注：对应的二进制为：0b 0001 0010 0001 0000 0100。）
+   *  四声道输入，分别是后中央（Back center）、前中央顶部
+      （Top front center）、前中央（Front center）和后中央顶部
+      （Top rear center）的顺序，需要重新排序。重新排序后的各声道分别是
+      前中央、后中央、 前中央顶部和后中央顶部。Vorbis 注释中应添加的字段
+      为 WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x12104。
 
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK fields MAY be padded with zeros,
-   for example, 0x0008 for a single LFE channel.  Parsing of
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK fields MUST be case-insensitive for
-   both the field name and the field contents.
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段「可以」（MAY）使用 0 进行
-   填充，因此 0x0008 与 0x8 是等价的，都表示单一低频音效（LFE）通道。
-   处理 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段时「必须」（MUST）对
-   字段名称和字段内容都采用大小写无关的处理方式。
+   「可以」（MAY）对 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段进行 0 比特
+   填充，因此 0x0008 与 0x8 是等价的，都表示单声道低频效果（LFE）。解析
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段时「必须」（MUST）对字段名称和
+   字段内容都采取大小写无关的处理方式。
 
-   A WAVEFORMATEXTENSIBLE_CHANNEL_MASK field of 0x0 can be used to
-   indicate that none of the audio channels of a file correlate with
-   speaker positions.  This is the case when audio needs to be decoded
-   into speaker positions (e.g., Ambisonics B-format audio) or when a
-   multitrack recording is contained.
    值为 0x0 的 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段可以用于表示文件中
-   没有任何一个音频通道与扬声器的位置相关。这种情况可能是需要将音频解码
-   并与扬声器位置进行对应的音频格式（例如 B 类 Ambisonics 音频）或是
-   包含多个音频轨道的文件。
+   任何声道都与扬声器的位置无关。在解码音频并分配到特定的扬声器位置
+   （例如 B 类 Ambisonics 音频）时或是文件中包含多个轨道的录制音频时
+   会发生这种情况。
 
-   It is possible for a WAVEFORMATEXTENSIBLE_CHANNEL_MASK field to code
-   for fewer channels than are present in the audio.  If that is the
-   case, the remaining channels SHOULD NOT be rendered by a playback
-   application unfamiliar with their purpose.  For example, the
-   Ambisonics UHJ format is compatible with stereo playback: its first
-   two channels can be played back on stereo equipment, but all four
-   channels together can be decoded into surround sound.  For that
-   example, the Vorbis comment field
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3 would be set, indicating that
-   the first two channels are front left and front right and other
-   channels do not correlate with speaker positions directly.
-   用 WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段编码比音频文件中实际更少的
-   通道数是可行的，这种情况下，回放应用程序「不应当」（SHOULD NOT）在
-   不了解余下的通道的作用时对这些通道进行解码；例如 Ambisonics UHJ 格式
-   是兼容立体声的：该格式的前两个通道可以作为立体声播放，但所有 4 个
-   通道一起解码才是环绕声。Vorbis 注释字段
-   WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3 表示前两个通道分别是左前方和
-   右前方，而其余的通道不与扬声器位置直接相关。
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK 字段表示的声道数可能比文件中实际的
+   声道数更少。在这种情况下，回放程序「不应当」（SHOULD NOT）在不了解
+   这些未标记的声道的用途时处理这些声道。例如 Ambisonics UHJ 格式兼容是
+   立体声的：该格式的前两个声道可以被解码为立体声，但四个声道是环绕声。
+   对于这个例子，可以设置 Vorbis 注释字段
+   WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3，这表示前两个声道分别是左前和
+   右前，而其余的声道与扬声器的位置没有直接的相关性。
 
-   If audio channels not assigned to any speaker are contained and
-   decoding to speaker positions is possible, it is recommended to
-   provide metadata on how this decoding should take place in another
-   Vorbis comment field or an application metadata block.  This document
-   does not define such metadata.
-   如果音频通道没有被分配到任何扬声器位置，但是这些音频通道又能够被解码
-   并对应到已知的扬声器位置时，建议在另外的 Vorbis 注释字段中
-   或者应用程序元数据块中提供描述这些音频通道转换的方式的元数据。本文
-   对此类元数据不作定义。
+   如果声道没有被分配到任何上表中定义的扬声器位置，但又能够被解码并对应
+   到已知的扬声器位置时，建议在其他的 Vorbis 注释字段中或在
+   Application 元数据块中提供这些声道的解码方式的元数据。这类元数据
+   不属于本文的规范。
 
 8.7.  Cue 表
 
