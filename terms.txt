@@ -1,0 +1,72 @@
+rfc9639 文中的相关术语、其他用词翻译参考
+
+（按英文字母顺序排列）：
+Bit depth：位深度
+Bits per sample：采样的位深度（“每采样比特数”难读，“存储每个采样所用的比特数”是完整的含义，但太长）
+Bit：比特、位（两者都可以，但“位”也可以是比特的量词，比如 8 位比特）
+Block size：块大小
+Block：块
+CD-DA：数字音乐光盘（Compact Disc Digital Audio）
+Channel mask：声道掩码
+Channel：声道
+Coded number：编码后的序号
+Coefficient：系数
+Constant subframe：常数子帧
+Differential pulse-code modulation，DPCM：差分脉冲调制编码
+Encapsulate：封装
+Fixed predictor：固定预测器
+Flag bit：标志比特
+Frame：帧
+Interchannel Decorrelation：消除声道间的关联性
+Interchannel samples：声道间的采样
+Interleave：交叉
+Least significant bit：最低有效位
+Linear predictive coding，LPC：线性预测编码
+Linear predictor：线性预测器
+Lossless compression：无损压缩
+Lossy compression：有损压缩
+Metadata block：元数据块
+Mid channel：均值通道（“消除声道间的关联性”的有关段落中）
+Most significant bit：最高有效位
+Octet：八比特组
+Outlier：异常值
+Packet：分组（出现在 Ogg 容器部分）
+Padding：填充
+Parameter：参数
+Prediction：预测（行为，作为名词使用）；预测值
+Predictor：预测器
+Pulse-code modulation，PCM：脉冲编码调制
+Residual Coding：编码残差
+Residual：残差
+Sample rate：采样率
+Seek point：定位点
+Seek table：定位表
+Side channel：差值通道（“消除声道间的关联性”的有关段落中）
+Standard field name：标准字段名称
+Subblock：子块
+Subframe：子帧
+Timecode：时码
+Uncommon block size：罕见块大小
+Uncommon sample rate：罕见采样率
+Unencoded：未编码、不进行编码（视情况而定）
+Warm-up samples：预热采样
+
+声道（以表格 8 的顺序排列）：
+Front left：左前
+Front right：右前
+Front center：前中央
+Low-frequency effects，LFE：低频效果
+Back left：左后
+Back right：右后
+Front left of center：中央左前
+Front right of center：中央右前
+Back center：后中央
+Side left：左侧
+Side right：右侧
+Top center：中央顶部
+Top front left：左前顶部
+Top front center：前中央顶部
+Top front right：右前顶部
+Top rear left：左后顶部
+Top rear center：后中央顶部
+Top rear right：右后顶部
