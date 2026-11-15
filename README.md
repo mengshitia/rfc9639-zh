@@ -13,3 +13,5 @@
 - rfc9639-zh_CN.txt：rfc9639 的中文翻译；采用 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans) 协议进行许可。
 - rfc9639.txt：rfc9639 的英文原文，其许可协议和版权信息以原文为准。
 - terms.txt：翻译过程中用于参考的部分术语列表。
+
+提示：建议使用中英文宽度 2:1 的等宽字体浏览文件，否则文件中表格的排版会参差不齐。
